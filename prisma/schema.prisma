@@ -1,0 +1,165 @@
+// Prisma schema for Evernote-like Note App
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  notebooks Notebook[]
+  tags      Tag[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Notebook {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String?  // Emoji or icon identifier
+  cardColor String?  // Card background color key (orange, gold, olive, dark, etc.)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Note {
+  id               String       @id @default(cuid())
+  title            String
+  icon             String?      // Emoji or icon identifier
+  cardColor        String?      // Card background color key (orange, gold, olive, dark)
+  content          String       @db.Text // Stored as HTML
+  contentPlaintext String?      @db.Text // For search
+  originalEnml     String?      @db.Text // Original ENML for debugging/re-processing
+  notebookId       String
+  notebook         Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  tags             NoteTag[]
+  attachments      Attachment[]
+  sourceUrl        String?
+  author           String?
+  latitude         Float?
+  longitude        Float?
+  altitude         Float?
+  isTrash          Boolean      @default(false)
+  isFavorite       Boolean      @default(false)
+  trashedAt        DateTime?    // When note was moved to trash (for 30-day auto-delete)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  evernoteCreated  DateTime? // Original Evernote timestamp
+  evernoteUpdated  DateTime? // Original Evernote timestamp
+  importedAt       DateTime?
+  importSource     String? // Track where note came from
+
+  @@index([notebookId])
+  @@index([createdAt])
+  @@index([isTrash])
+  @@index([isFavorite])
+  // Compound indexes for optimized queries
+  @@index([notebookId, isTrash, updatedAt]) // For filtered note lists by notebook
+  @@index([isTrash, updatedAt])              // For all notes/trash sorted by date
+  @@index([updatedAt])                       // For sorting by most recent
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String
+  color     String?   // Hex color code (e.g., #ef4444)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     NoteTag[]
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model NoteTag {
+  noteId String
+  tagId  String
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  noteId       String
+  note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String?
+  mimeType     String
+  size         Int
+  storageKey   String // Path in storage
+  hash         String? // MD5 hash from Evernote for reference matching
+  width        Int? // For images
+  height       Int? // For images
+  createdAt    DateTime @default(now())
+
+  @@index([noteId])
+  @@index([hash])
+}
+
+model ImportJob {
+  id          String    @id @default(cuid())
+  userId      String
+  filename    String
+  status      String // pending, processing, completed, failed
+  totalNotes  Int?
+  imported    Int       @default(0)
+  failed      Int       @default(0)
+  errors      Json? // Array of error messages
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model IssueReport {
+  id          String   @id @default(cuid())
+  userEmail   String   // Email of the user who reported
+  userId      String?  // Optional user ID if logged in
+  category    String   // bug, feature, other
+  description String   @db.Text
+  status      String   @default("pending") // pending, reviewed, resolved
+  userAgent   String?  // Browser info for debugging
+  reportedAt  DateTime @default(now())
+  reviewedAt  DateTime?
+
+  @@index([status])
+  @@index([reportedAt])
+}
+
+model AISummary {
+  id           String   @id @default(cuid())
+  type         String   // note, notebook, search
+  targetId     String   // noteId, notebookId, or search query hash
+  contentHash  String   // Hash of content to detect changes
+  summary      String   @db.Text
+  keyPoints    Json?    // Array of key points (for notes)
+  themes       Json?    // Array of themes (for notebooks/search)
+  connections  Json?    // Array of connections (for search)
+  keyFindings  Json?    // Array of key findings (for search)
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime // Auto-expire after 30 days
+
+  @@unique([type, targetId])
+  @@index([type, targetId])
+  @@index([expiresAt])
+}
