@@ -444,7 +444,7 @@ export function Sidebar({
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                             setIsAddToHomeScreenModalOpen(true);
-                            onItemClick?.();
+                            // onItemClick?.();
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
                         style={{ color: 'var(--accent-primary)' }}
