@@ -65,6 +65,9 @@ export function AddToHomeScreenModal({ isOpen, onClose }: AddToHomeScreenModalPr
         }
     };
 
+    const step = steps[currentStep] || steps[0];
+    if (!step) return null;
+
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Install App" size="sm">
             <div className="text-center">
@@ -82,20 +85,20 @@ export function AddToHomeScreenModal({ isOpen, onClose }: AddToHomeScreenModalPr
                             style={{ background: 'var(--surface-shell)' }}
                         >
                             <div style={{ color: 'var(--accent-primary)' }}>
-                                {steps[currentStep].icon}
+                                {step.icon}
                             </div>
                         </div>
                         <h3
                             className="text-lg font-semibold mb-2"
                             style={{ color: 'var(--text-primary)' }}
                         >
-                            {steps[currentStep].title}
+                            {step.title}
                         </h3>
                         <p
                             className="text-sm px-4"
                             style={{ color: 'var(--text-secondary)' }}
                         >
-                            {steps[currentStep].description}
+                            {step.description}
                         </p>
                     </motion.div>
                 </AnimatePresence>
