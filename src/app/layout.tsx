@@ -107,8 +107,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Evernote Clone",
+  title: "Notova",
   description: "A modern note-taking application",
+  metadataBase: new URL("https://notova.app"),
 };
 
 export default function RootLayout({
