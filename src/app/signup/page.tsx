@@ -59,7 +59,26 @@ export default function SignupPage() {
     return (
         <div
             className="min-h-screen flex items-center justify-center px-4"
-            style={{ background: 'var(--surface-shell)' }}
+            style={{
+                background: 'var(--surface-shell)',
+                color: '#1A1A1A', // Explicitly force text color
+                // Force light theme warm editorial palette for consistency with login page
+                // @ts-ignore
+                '--surface-shell': '#FAF6EE',
+                '--surface-content': '#fff5e6', // Ultra-soft cream
+                '--surface-content-secondary': '#fff5e6',
+                '--text-primary': '#1A1A1A',
+                '--text-secondary': '#7A7168',
+                '--text-on-shell': '#1A1A1A',
+                '--text-on-shell-secondary': '#7A7168',
+                '--text-on-accent': '#1A1A1A',
+                '--accent-primary': '#E8783A',
+                '--accent-secondary': '#E89A4A',
+                '--border-primary': '#E8E0D0',
+                '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                '--shadow-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            } as React.CSSProperties}
         >
             <div className="max-w-md w-full space-y-8">
                 {/* Logo */}

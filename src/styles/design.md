@@ -44,6 +44,60 @@
 --gradient-primary: linear-gradient(135deg, #F7D44C 0%, #EB7A53 100%);
 --gradient-secondary: linear-gradient(135deg, #ABD672 0%, #98B7DB 100%);
 --gradient-warm: linear-gradient(180deg, #F7D44C 0%, #F6ECC9 100%);
+--gradient-midnight: linear-gradient(135deg, #A78BFA 0%, #C4B5FD 100%);
+```
+
+### Theme Variants
+The design system includes 8 distinct theme options:
+
+1. **Light** - Clean and bright with warm undertones
+2. **Dark** - True black with high contrast
+3. **Warm** - Dark shell with cream content surfaces
+4. **Cool** - Modern blue-tinted dark mode
+5. **Earth** - Natural sage green with warm content
+6. **Spring** - Playful pastels with soft pink
+7. **Midnight** - Deep purple night with rich violet accents
+8. **Autumn** - Sunset warmth with coral and peach accents
+
+**Midnight Theme Colors:**
+```css
+/* Shell/Navigation */
+--surface-shell: #1A0F2E;         /* Deep purple-black */
+--surface-shell-hover: #251835;   /* Rich purple */
+
+/* Content */
+--surface-content: #2D1B4E;       /* Royal purple */
+--surface-content-secondary: #3A2560; /* Deeper purple */
+
+/* Interactive */
+--accent-primary: #A78BFA;        /* Vibrant purple */
+--accent-secondary: #C4B5FD;      /* Light lavender */
+--highlight: #C4B5FD;             /* Selection color */
+
+/* Text */
+--text-primary: #F3F0FF;          /* Almost white with purple tint */
+--text-secondary: #C4B5FD;        /* Lavender */
+```
+
+**Autumn Theme Colors:**
+```css
+/* Shell/Navigation */
+--surface-shell: #6B2D2D;         /* Deep maroon/burgundy */
+--surface-shell-hover: #8B3A3A;   /* Lighter burgundy */
+
+/* Content */
+--surface-content: #FFF8F0;       /* Warm cream */
+--surface-content-secondary: #FFEFDB; /* Light amber */
+
+/* Interactive - True autumn red */
+--accent-primary: #D84A4A;        /* True autumn red */
+--accent-secondary: #E06E6E;      /* Lighter red */
+--card-red: #C62828;              /* Deep red */
+--highlight: #D84A4A;             /* True autumn red */
+
+/* Text */
+--text-primary: #3E2723;          /* Deep brown */
+--text-on-shell: #FFF8F0;         /* Cream on maroon */
 ```
 
 ---

@@ -121,6 +121,7 @@ export function NotesList({
     const [activeFilter, setActiveFilter] = useState('all');
     const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
     const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+    const [isCreatingNote, setIsCreatingNote] = useState(false);
 
     // Sort notes based on active filter
     const sortedNotes = useMemo(() => {
@@ -315,8 +316,8 @@ export function NotesList({
                                 >
                                     <defs>
                                         <linearGradient id="filterSparkleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style={{ stopColor: '#E8783A' }} />
-                                            <stop offset="100%" style={{ stopColor: '#E89A4A' }} />
+                                            <stop offset="0%" style={{ stopColor: 'var(--accent-primary)' }} />
+                                            <stop offset="100%" style={{ stopColor: 'var(--accent-secondary)' }} />
                                         </linearGradient>
                                     </defs>
                                     <path d="M48.2.5c6.6,26.1,21.7,42.6,48.9,48,.6.1.6,1,0,1.2-25,6.6-41.9,20.5-48.2,46.3-.2.6-1.1.6-1.2,0C41.6,70.5,26.6,55.2.5,50c-.7-.1-.7-1.1,0-1.2C26.4,42.6,41.8,27,47,.5c.1-.6,1-.7,1.2,0Z" fill="url(#filterSparkleGradient)" />
@@ -524,9 +525,8 @@ export function NotesList({
                                                     >
                                                         <defs>
                                                             <linearGradient id={`sparkleGradient-${note.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                                                <stop offset="0%" style={{ stopColor: '#FFD700' }} />
-                                                                <stop offset="50%" style={{ stopColor: '#FFA500' }} />
-                                                                <stop offset="100%" style={{ stopColor: '#FF8C00' }} />
+                                                                <stop offset="0%" style={{ stopColor: 'var(--accent-primary)' }} />
+                                                                <stop offset="100%" style={{ stopColor: 'var(--accent-secondary)' }} />
                                                             </linearGradient>
                                                         </defs>
                                                         <path
@@ -722,28 +722,54 @@ export function NotesList({
                     scale: 1.08,
                     y: -2,
                     boxShadow: `
-                        0 8px 32px -4px rgba(255, 152, 0, 0.4),
-                        0 16px 48px -8px rgba(255, 152, 0, 0.2),
+                        0 4px 16px -4px var(--accent-glow),
+                        0 8px 24px -8px var(--accent-glow-soft),
                         0 0 0 2px rgba(255, 255, 255, 0.1)
                     `
                 }}
                 whileTap={{ scale: 0.92 }}
-                onClick={onNewNote}
+                onClick={() => {
+                    setIsCreatingNote(true);
+                    onNewNote?.();
+                    // Reset loading state after animation
+                    setTimeout(() => setIsCreatingNote(false), 1000);
+                }}
                 className="absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-30"
                 style={{
                     background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
                     color: 'var(--text-on-accent)',
                     boxShadow: `
-                        0 4px 16px -2px rgba(255, 152, 0, 0.35),
-                        0 12px 32px -4px rgba(255, 152, 0, 0.15),
+                        0 2px 8px -2px var(--accent-glow),
+                        0 6px 16px -4px var(--accent-glow-soft),
                         0 0 0 1px rgba(255, 255, 255, 0.08)
                     `
                 }}
                 aria-label="Create new note"
             >
-                <svg className="w-6 h-6" fill="none" stroke="var(--text-on-accent)" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
+                {isCreatingNote ? (
+                    <motion.svg
+                        className="w-6 h-6"
+                        viewBox="0 0 97.6 96.4"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.8, ease: "linear", repeat: Infinity }}
+                    >
+                        <defs>
+                            <linearGradient id="sparkleGradientFab" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style={{ stopColor: 'var(--accent-primary)' }} />
+                                <stop offset="100%" style={{ stopColor: 'var(--accent-secondary)' }} />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d="M48.2.5c6.6,26.1,21.7,42.6,48.9,48,.6.1.6,1,0,1.2-25,6.6-41.9,20.5-48.2,46.3-.2.6-1.1.6-1.2,0C41.6,70.5,26.6,55.2.5,50c-.7-.1-.7-1.1,0-1.2C26.4,42.6,41.8,27,47,.5c.1-.6,1-.7,1.2,0Z"
+                            fill="url(#sparkleGradientFab)"
+                            strokeWidth="0"
+                        />
+                    </motion.svg>
+                ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="var(--text-on-accent)" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                )}
             </motion.button>
         </div >
     );

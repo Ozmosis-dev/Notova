@@ -4,6 +4,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { UserThemeProvider } from "@/components/providers/UserThemeProvider";
 
 const lufga = localFont({
   src: [
@@ -125,7 +126,9 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <UserThemeProvider>
+              {children}
+            </UserThemeProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

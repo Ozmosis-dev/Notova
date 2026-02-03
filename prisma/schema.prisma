@@ -15,6 +15,7 @@ model User {
   id        String     @id @default(cuid())
   email     String     @unique
   name      String?
+  theme     String     @default("dark") // User's preferred theme: light, dark, warm, cool
   notebooks Notebook[]
   tags      Tag[]
   createdAt DateTime   @default(now())

@@ -111,7 +111,12 @@ export function TagSelector({ noteId, currentTags, onTagsChange, disabled }: Tag
                 {currentTags.map(tag => (
                     <span
                         key={tag.id}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-[#F6ECC9] text-[#8B6914] dark:bg-[#F7D44C]/40 dark:text-[#1a1a1a] border border-[#E8D4A0] dark:border-[#F7D44C]/60"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full transition-colors"
+                        style={{
+                            background: 'var(--highlight-soft)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--highlight)'
+                        }}
                     >
                         {tag.name}
                         {!disabled && (
@@ -134,7 +139,13 @@ export function TagSelector({ noteId, currentTags, onTagsChange, disabled }: Tag
                             setIsOpen(!isOpen);
                             setTimeout(() => inputRef.current?.focus(), 100);
                         }}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:border-[#FFA500] hover:text-[#E8783A] dark:hover:border-[#FFA500] dark:hover:text-[#FFA500] transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-dashed transition-colors"
+                        style={{
+                            borderColor: 'var(--border-primary)',
+                            color: 'var(--text-muted)'
+                        }}
+                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, { borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' })}
+                        onMouseLeave={(e) => Object.assign(e.currentTarget.style, { borderColor: 'var(--border-primary)', color: 'var(--text-muted)' })}
                     >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -170,7 +181,7 @@ export function TagSelector({ noteId, currentTags, onTagsChange, disabled }: Tag
                             className="w-full px-3 py-1.5 text-sm rounded-full focus:outline-none focus-visible:outline-none"
                             style={{
                                 background: 'rgba(128, 128, 128, 0.08)',
-                                border: isSearchFocused ? '1px solid #FFA500' : '1px solid var(--border-primary)',
+                                border: isSearchFocused ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
                                 color: 'var(--text-on-shell, var(--text-primary))',
                                 outline: 'none'
                             }}

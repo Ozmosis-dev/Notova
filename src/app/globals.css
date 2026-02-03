@@ -53,6 +53,8 @@
   --highlight-soft: rgba(242, 212, 102, 0.3);
   --accent-primary: #E8783A;
   --accent-secondary: #E89A4A;
+  --accent-glow: rgba(232, 120, 58, 0.4);
+  --accent-glow-soft: rgba(232, 120, 58, 0.2);
   --sidebar-selection-bg: rgba(250, 246, 238, 0.25);
   --sidebar-selection-border: rgba(250, 246, 238, 0.35);
   --sidebar-selection-icon: rgba(250, 246, 238, 0.3);
@@ -108,10 +110,70 @@
 }
 
 /* ================================================================
-   Dark Mode - Warm Shell / Cream Content Split
+   Dark Mode - True Black Background
    ================================================================ */
 
 .dark {
+  /* Shell / Navigation - Pure black */
+  --surface-shell: #000000;
+  --surface-shell-hover: #1A1A1A;
+
+  /* Content Areas - Deep black/dark gray */
+  --surface-content: #0A0A0A;
+  --surface-content-secondary: #1A1A1A;
+
+  /* Card Accent Colors - Dark mode variants */
+  --surface-card-default: rgba(255, 255, 255, 0.08);
+  --surface-card-black: #1A1A1A;
+  --surface-card-gold: #E8C840;
+  --surface-card-orange: #E8783A;
+  --surface-card-taupe: #C5C2BB;
+  --surface-card-olive: #A8B87A;
+  --surface-card-blue: #4A9AE0;
+  --surface-card-purple: #8A78CC;
+  --surface-card-red: #D84848;
+  --surface-card-navy: #4A65A8;
+  --surface-card-pink: #D090D5;
+
+  /* Text Colors - Light text on dark */
+  --text-primary: #F5F5F5;
+  --text-secondary: #B0B0B0;
+  --text-muted: #808080;
+  --text-on-shell: #F5F5F5;
+  --text-on-shell-secondary: #B0B0B0;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #1A1A1A;
+
+  /* Interactive Colors */
+  --highlight: #F2D466;
+  --highlight-soft: rgba(242, 212, 102, 0.3);
+  --accent-primary: #E8783A;
+  --accent-secondary: #E89A4A;
+  --accent-glow: rgba(232, 120, 58, 0.4);
+  --accent-glow-soft: rgba(232, 120, 58, 0.2);
+  --sidebar-selection-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-selection-border: rgba(255, 255, 255, 0.12);
+  --sidebar-selection-icon: rgba(255, 255, 255, 0.1);
+  --selection-ring: #F0C15D;
+
+  /* Borders & Dividers */
+  --border-primary: #2A2A2A;
+  --border-subtle: #1A1A1A;
+  --border-on-cream: #3A3A3A;
+
+  /* Shadows - Deeper for true black */
+  --shadow-color: 0, 0, 0;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.2);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.3);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.4);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.5);
+}
+
+/* ================================================================
+   Warm Theme - Dark Shell / Cream Content Split
+   ================================================================ */
+
+.warm {
   /* Shell / Navigation - Near black */
   --surface-shell: #1A1A1A;
   --surface-shell-hover: #252525;
@@ -120,7 +182,7 @@
   --surface-content: #F5ECD7;
   --surface-content-secondary: #EDE4CF;
 
-  /* Card Accent Colors - Dark mode variants */
+  /* Card Accent Colors - Warm variants */
   --surface-card-default: rgba(255, 255, 255, 0.12);
   --surface-card-black: #2A2A2A;
   --surface-card-gold: #E8C840;
@@ -150,6 +212,8 @@
   --highlight-soft: rgba(242, 212, 102, 0.4);
   --accent-primary: #E8783A;
   --accent-secondary: #E89A4A;
+  --accent-glow: rgba(232, 120, 58, 0.4);
+  --accent-glow-soft: rgba(232, 120, 58, 0.2);
   --sidebar-selection-bg: rgba(250, 246, 238, 0.12);
   --sidebar-selection-border: rgba(250, 246, 238, 0.2);
   --sidebar-selection-icon: rgba(250, 246, 238, 0.18);
@@ -168,7 +232,311 @@
   --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.18);
 }
 
-/* System preference fallback */
+
+/* ================================================================
+   Cool Theme - Modern Blue-Tinted Dark Mode
+   ================================================================ */
+
+.cool {
+  /* Shell / Navigation - Deep blue-black */
+  --surface-shell: #0F172A;
+  --surface-shell-hover: #1E293B;
+
+  /* Content Areas - Slate dark */
+  --surface-content: #1E293B;
+  --surface-content-secondary: #334155;
+
+  /* Card Accent Colors - Cool variants */
+  --surface-card-default: rgba(255, 255, 255, 0.08);
+  --surface-card-black: #1E293B;
+  --surface-card-gold: #FACC15;
+  --surface-card-orange: #F97316;
+  --surface-card-taupe: #94A3B8;
+  --surface-card-olive: #84CC16;
+  --surface-card-blue: #3B82F6;
+  --surface-card-purple: #8B5CF6;
+  --surface-card-red: #EF4444;
+  --surface-card-navy: #6366F1;
+  --surface-card-pink: #EC4899;
+
+  /* Text Colors */
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-on-shell: #F1F5F9;
+  --text-on-shell-secondary: #94A3B8;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #FFFFFF;
+
+  /* Interactive Colors - Cool blue accents */
+  --highlight: #38BDF8;
+  --highlight-soft: rgba(56, 189, 248, 0.25);
+  --accent-primary: #3B82F6;
+  --accent-secondary: #60A5FA;
+  --accent-glow: rgba(59, 130, 246, 0.4);
+  --accent-glow-soft: rgba(59, 130, 246, 0.2);
+  --sidebar-selection-bg: rgba(59, 130, 246, 0.15);
+  --sidebar-selection-border: rgba(59, 130, 246, 0.25);
+  --sidebar-selection-icon: rgba(59, 130, 246, 0.2);
+  --selection-ring: #3B82F6;
+
+  /* Borders & Dividers */
+  --border-primary: #334155;
+  --border-subtle: #1E293B;
+  --border-on-cream: #475569;
+
+  /* Shadows - Cool blue-tinted */
+  --shadow-color: 15, 23, 42;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.15);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.2);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.25);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.3);
+}
+
+/* ================================================================
+   Earth Theme - Natural Sage Green with Warm Content
+   ================================================================ */
+
+.earth {
+  /* Shell / Navigation - Sage green */
+  --surface-shell: #4A5D4A;
+  --surface-shell-hover: #5A6E5A;
+
+  /* Content Areas - Warm cream parchment */
+  --surface-content: #F5ECD7;
+  --surface-content-secondary: #EDE4CF;
+
+  /* Card Accent Colors - Natural earth tones */
+  --surface-card-default: rgba(255, 255, 255, 0.12);
+  --surface-card-black: #3A4A3A;
+  --surface-card-gold: #A8B86A;
+  --surface-card-orange: #8AA670;
+  --surface-card-taupe: #B8AFA0;
+  --surface-card-olive: #8B9A6A;
+  --surface-card-blue: #6B9EB0;
+  --surface-card-purple: #9B8BA8;
+  --surface-card-red: #B85A5A;
+  --surface-card-navy: #5A7085;
+  --surface-card-pink: #C89BA8;
+
+  /* Text Colors - Context aware */
+  --text-primary: #2A3A2A;
+  --text-secondary: #4A5A4A;
+  --text-muted: #6A7A6A;
+  --text-on-shell: #F5F0E0;
+  --text-on-shell-secondary: #E8DCC5;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #FFFFFF;
+
+  /* Interactive Colors - Botanical greens */
+  --highlight: #9BC785;
+  --highlight-soft: rgba(155, 199, 133, 0.35);
+  --accent-primary: #6B8E5A;
+  --accent-secondary: #8AA670;
+  --accent-glow: rgba(107, 142, 90, 0.4);
+  --accent-glow-soft: rgba(107, 142, 90, 0.2);
+  --sidebar-selection-bg: rgba(155, 199, 133, 0.12);
+  --sidebar-selection-border: rgba(155, 199, 133, 0.2);
+  --sidebar-selection-icon: rgba(155, 199, 133, 0.18);
+  --selection-ring: #9BC785;
+
+  /* Borders & Dividers */
+  --border-primary: #5A6E5A;
+  --border-subtle: #4A5D4A;
+  --border-on-cream: #D8CDB8;
+
+  /* Shadows - Warm earthy tint */
+  --shadow-color: 42, 58, 42;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.1);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.12);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.15);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.2);
+}
+
+
+/* ================================================================
+   Spring Theme - Playful Pastels with Soft Pink
+   ================================================================ */
+
+.spring {
+  /* Shell / Navigation - Soft pink */
+  --surface-shell: #FFE5EC;
+  --surface-shell-hover: #FFD1DD;
+
+  /* Content Areas - Very light cream */
+  --surface-content: #FFFBF8;
+  --surface-content-secondary: #FFF5F0;
+
+  /* Card Accent Colors - Playful spring pastels */
+  --surface-card-default: rgba(255, 143, 171, 0.08);
+  --surface-card-black: #FFD1DD;
+  --surface-card-gold: #FFD966;
+  --surface-card-orange: #FFAB91;
+  --surface-card-taupe: #E8D5D5;
+  --surface-card-olive: #C5E1A5;
+  --surface-card-blue: #90CAF9;
+  --surface-card-purple: #CE93D8;
+  --surface-card-red: #EF9A9A;
+  --surface-card-navy: #9FA8DA;
+  --surface-card-pink: #FF8FAB;
+
+  /* Text Colors - Dark on light */
+  --text-primary: #4A3A4A;
+  --text-secondary: #7A6A7A;
+  --text-muted: #AA9AAA;
+  --text-on-shell: #5A2A4A;
+  --text-on-shell-secondary: #7A4A6A;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #FFFFFF;
+
+  /* Interactive Colors - Pink, yellow, blue accents */
+  --highlight: #FFD966;
+  --highlight-soft: rgba(255, 217, 102, 0.3);
+  --accent-primary: #FF8FAB;
+  --accent-secondary: #FFA8C0;
+  --accent-glow: rgba(255, 143, 171, 0.4);
+  --accent-glow-soft: rgba(255, 143, 171, 0.2);
+  --sidebar-selection-bg: rgba(255, 143, 171, 0.12);
+  --sidebar-selection-border: rgba(255, 143, 171, 0.2);
+  --sidebar-selection-icon: rgba(255, 143, 171, 0.15);
+  --selection-ring: #FF8FAB;
+
+  /* Borders & Dividers */
+  --border-primary: #FFD1DD;
+  --border-subtle: #FFE5EC;
+  --border-on-cream: #FFD1DD;
+
+  /* Shadows - Soft pink tinted */
+  --shadow-color: 255, 143, 171;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.08);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.1);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.12);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.15);
+}
+
+
+/* ================================================================
+   Midnight Theme - Deep Purple Night with Rich Violet Accents
+   ================================================================ */
+
+.midnight {
+  /* Shell / Navigation - Deep purple-black */
+  --surface-shell: #1A0F2E;
+  --surface-shell-hover: #251835;
+
+  /* Content Areas - Rich purple */
+  --surface-content: #2D1B4E;
+  --surface-content-secondary: #3A2560;
+
+  /* Card Accent Colors - Purple-themed variants */
+  --surface-card-default: rgba(167, 139, 250, 0.12);
+  --surface-card-black: #1F1333;
+  --surface-card-gold: #E9D5FF;
+  --surface-card-orange: #DDA0DD;
+  --surface-card-taupe: #C4B5D5;
+  --surface-card-olive: #B39DDB;
+  --surface-card-blue: #9D8FDB;
+  --surface-card-purple: #A78BFA;
+  --surface-card-red: #E879F9;
+  --surface-card-navy: #8B5CF6;
+  --surface-card-pink: #F0ABFC;
+
+  /* Text Colors - Light text on dark purple */
+  --text-primary: #F3F0FF;
+  --text-secondary: #C4B5FD;
+  --text-muted: #A78BFA;
+  --text-on-shell: #F3F0FF;
+  --text-on-shell-secondary: #C4B5FD;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #1A0F2E;
+
+  /* Interactive Colors - Vibrant purple accents */
+  --highlight: #C4B5FD;
+  --highlight-soft: rgba(196, 181, 253, 0.25);
+  --accent-primary: #A78BFA;
+  --accent-secondary: #C4B5FD;
+  --accent-glow: rgba(167, 139, 250, 0.5);
+  --accent-glow-soft: rgba(167, 139, 250, 0.25);
+  --sidebar-selection-bg: rgba(167, 139, 250, 0.15);
+  --sidebar-selection-border: rgba(167, 139, 250, 0.25);
+  --sidebar-selection-icon: rgba(167, 139, 250, 0.2);
+  --selection-ring: #A78BFA;
+
+  /* Borders & Dividers */
+  --border-primary: #3A2560;
+  --border-subtle: #251835;
+  --border-on-cream: #4C3575;
+
+  /* Shadows - Purple-tinted for depth */
+  --shadow-color: 26, 15, 46;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.2), 0 1px 4px rgba(167, 139, 250, 0.05);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.3), 0 2px 8px rgba(167, 139, 250, 0.08);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.4), 0 4px 16px rgba(167, 139, 250, 0.12);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.5), 0 6px 20px rgba(167, 139, 250, 0.15);
+}
+
+
+/* ================================================================
+   Autumn Theme - Classic Fall Foliage Colors
+   ================================================================ */
+
+.autumn {
+  /* Shell / Navigation - Deep maroon/burgundy */
+  --surface-shell: #6B2D2D;
+  --surface-shell-hover: #8B3A3A;
+
+  /* Content Areas - Warm cream */
+  --surface-content: #FFF8F0;
+  --surface-content-secondary: #FFEFDB;
+
+  /* Card Accent Colors - True autumn palette */
+  --surface-card-default: rgba(216, 67, 21, 0.08);
+  --surface-card-black: #4A2525;
+  --surface-card-gold: #FFA726;
+  --surface-card-orange: #D84315;
+  --surface-card-taupe: #A67C52;
+  --surface-card-olive: #8D6E63;
+  --surface-card-blue: #B8704D;
+  --surface-card-purple: #A0522D;
+  --surface-card-red: #C62828;
+  --surface-card-navy: #6D4C41;
+  --surface-card-pink: #D97B5E;
+
+  /* Text Colors - Warm autumn tones */
+  --text-primary: #3E2723;
+  --text-secondary: #6D4C41;
+  --text-muted: #A1887F;
+  --text-on-shell: #FFF8F0;
+  --text-on-shell-secondary: #E8C5B5;
+  --text-on-dark: #FFFFFF;
+  --text-on-accent: #FFFFFF;
+
+  /* Interactive Colors - True autumn red */
+  --highlight: #D84A4A;
+  --highlight-soft: rgba(216, 74, 74, 0.25);
+  --accent-primary: #D84A4A;
+  --accent-secondary: #E06E6E;
+  --accent-glow: rgba(216, 74, 74, 0.4);
+  --accent-glow-soft: rgba(216, 74, 74, 0.2);
+  --sidebar-selection-bg: rgba(216, 74, 74, 0.12);
+  --sidebar-selection-border: rgba(216, 74, 74, 0.2);
+  --sidebar-selection-icon: rgba(216, 74, 74, 0.15);
+  --selection-ring: #D84A4A;
+
+  /* Borders & Dividers */
+  --border-primary: #E8D5C8;
+  --border-subtle: #F0E5D8;
+  --border-on-cream: #FFD5B8;
+
+  /* Shadows - Warm brown-tinted */
+  --shadow-color: 107, 45, 45;
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-color), 0.1), 0 1px 4px rgba(216, 67, 21, 0.05);
+  --shadow-md: 0 2px 6px rgba(var(--shadow-color), 0.12), 0 2px 8px rgba(216, 67, 21, 0.08);
+  --shadow-lg: 0 4px 12px rgba(var(--shadow-color), 0.15), 0 4px 16px rgba(216, 67, 21, 0.1);
+  --shadow-xl: 0 6px 16px rgba(var(--shadow-color), 0.18), 0 6px 20px rgba(216, 67, 21, 0.12);
+}
+
+
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     --surface-shell: #1A1A1A;
@@ -579,6 +947,7 @@ input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px var(--surface-content) inset !important;
   -webkit-text-fill-color: var(--text-primary) !important;
+  font-family: var(--font-lufga) !important;
 }
 
 /* ================================================================

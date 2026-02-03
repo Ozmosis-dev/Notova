@@ -132,7 +132,7 @@ export function Header({
                         <svg
                             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10"
                             style={{
-                                color: isSearchFocused ? '#FF8C00' : 'var(--text-muted)'
+                                color: isSearchFocused ? 'var(--accent-primary)' : 'var(--text-muted)'
                             }}
                             fill="none"
                             stroke="currentColor"
@@ -150,7 +150,7 @@ export function Header({
                             className="w-full pl-11 pr-10 py-2 md:py-3 text-base rounded-2xl transition-all focus:outline-none placeholder:transition-colors"
                             style={{
                                 background: 'rgba(128, 128, 128, 0.08)',
-                                border: isSearchFocused ? '1px solid #FFA500' : '1px solid var(--border-primary)',
+                                border: isSearchFocused ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
                                 color: 'var(--text-on-shell, var(--text-primary))',
                                 outline: 'none'
                             }}

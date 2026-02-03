@@ -127,7 +127,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--ai-primary);
+    color: var(--accent-primary);
 }
 
 /* Themes */
@@ -142,15 +142,16 @@
     align-items: center;
     gap: 4px;
     padding: 6px 12px;
-    background: var(--text-primary);
-    color: #C8C8C8;
+    background: var(--surface-content-secondary);
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 500;
     border-radius: 20px;
+    border: 1px solid var(--border-primary);
 }
 
 .ai-theme-tag svg {
-    color: #C8C8C8;
+    color: var(--accent-primary);
 }
 
 /* Connections */

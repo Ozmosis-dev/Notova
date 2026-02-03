@@ -186,14 +186,14 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
 
     return (
         <>
-            {/* Mobile Overlay Backdrop - Warm tint */}
+            {/* Mobile Overlay Backdrop */}
             {isMobile && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                    className="fixed inset-0 backdrop-blur-sm z-100"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
                     onClick={onClose}
                 />
             )}
@@ -207,19 +207,22 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                 transition={{ type: "spring", damping: 25, stiffness: 300, mass: 0.8 }}
                 className={`
                     flex flex-col overflow-hidden shadow-2xl
-                    bg-[#FFFDF8]/98 dark:bg-[#1A1A1A]/98 backdrop-blur-xl
-                    border border-[var(--border-primary)] dark:border-[var(--border-subtle)]
+                    backdrop-blur-xl
                     ${isMobile
                         ? 'fixed inset-x-0 bottom-0 z-100 rounded-t-3xl h-[60vh] max-h-[600px] w-full'
                         : 'absolute z-50 w-[400px] rounded-2xl h-[480px]'
                     } ${className}
                 `}
-                style={style}
+                style={{
+                    background: 'var(--surface-shell)',
+                    border: '1px solid var(--border-primary)',
+                    ...style
+                }}
             >
                 {/* Mobile drag handle - Warm tint */}
                 {isMobile && (
                     <div className="w-full flex justify-center pt-3 pb-1 shrink-0" onClick={onClose}>
-                        <div className="w-12 h-1.5 bg-[#D4A574]/40 dark:bg-[#8B7355]/40 rounded-full" />
+                        <div className="w-12 h-1.5 rounded-full" style={{ background: 'var(--border-primary)', opacity: 0.5 }} />
                     </div>
                 )}
 
@@ -229,7 +232,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                         <svg
                             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10"
                             style={{
-                                color: search ? '#FF8C00' : 'var(--text-muted)'
+                                color: search ? 'var(--accent-primary)' : 'var(--text-muted)'
                             }}
                             fill="none"
                             stroke="currentColor"
@@ -246,8 +249,8 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                             className="w-full pl-11 pr-10 py-2.5 md:py-3 text-base rounded-2xl transition-all focus:outline-none placeholder:transition-colors"
                             style={{
                                 background: 'rgba(128, 128, 128, 0.08)',
-                                border: search ? '1px solid #FFA500' : '1px solid var(--border-primary)',
-                                color: 'var(--text-on-shell, var(--text-primary))',
+                                border: search ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
+                                color: 'var(--text-primary)',
                                 outline: 'none'
                             }}
                         />
@@ -275,7 +278,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
 
                 {/* Category tabs */}
                 {!search && (
-                    <div className="relative shrink-0 border-b border-zinc-100 dark:border-zinc-800/50">
+                    <div className="relative shrink-0" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                         <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar px-3 pb-2 snap-x">
                             {categoryKeys.map((key) => {
                                 const category = OPENMOJI_CATEGORIES[key];
@@ -284,21 +287,21 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                                     <button
                                         key={key}
                                         onClick={() => setSelectedCategory(key)}
-                                        className={`
-                                            relative shrink-0 p-2 rounded-xl transition-all duration-200 snap-start
-                                            flex items-center justify-center
-                                            ${isSelected
-                                                ? 'bg-[var(--highlight-soft)] text-[var(--highlight)] dark:bg-[rgba(242,212,102,0.15)] dark:text-[var(--highlight)]'
-                                                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                                            }
-                                        `}
+                                        className="relative shrink-0 p-2 rounded-xl transition-all duration-200 snap-start flex items-center justify-center"
+                                        style={{
+                                            background: isSelected ? 'var(--highlight-soft)' : 'transparent',
+                                            color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'
+                                        }}
+                                        onMouseEnter={(e) => !isSelected && Object.assign(e.currentTarget.style, { background: 'var(--surface-shell-hover)' })}
+                                        onMouseLeave={(e) => !isSelected && Object.assign(e.currentTarget.style, { background: 'transparent' })}
                                         title={category.label}
                                     >
                                         <OpenMoji hexcode={category.iconHexcode} size={20} className={isSelected ? 'opacity-100' : 'opacity-70'} />
                                         {isSelected && (
                                             <motion.div
                                                 layoutId="activeCategory"
-                                                className="absolute inset-x-1 -bottom-[9px] h-0.5 bg-[var(--highlight)] rounded-t-full"
+                                                className="absolute inset-x-1 -bottom-[9px] h-0.5 rounded-t-full"
+                                                style={{ background: 'var(--accent-primary)' }}
                                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                             />
                                         )}
@@ -306,16 +309,14 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                                 );
                             })}
                         </div>
-                        {/* Gradient Fade for scroll indicators */}
-                        <div className="absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-white dark:from-black to-transparent pointer-events-none opacity-50" />
-                        <div className="absolute left-0 top-0 bottom-0 w-4 bg-linear-to-r from-white dark:from-black to-transparent pointer-events-none opacity-50" />
+                        {/* Gradient Fade for scroll indicators - removed as not needed with theme */}
                     </div>
                 )}
 
                 {/* Main Content Area - Category Label & Grid */}
-                <div className="flex-1 min-h-0 bg-[var(--surface-content)] dark:bg-[#1A1A1A] flex flex-col relative">
+                <div className="flex-1 min-h-0 flex flex-col relative" style={{ background: 'var(--surface-content)' }}>
                     {/* Sticky Label */}
-                    <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 flex justify-between items-center bg-[#FFFDF8]/90 dark:bg-[#1A1A1A]/90 backdrop-blur-md sticky top-0 z-10 shrink-0 shadow-sm">
+                    <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest flex justify-between items-center backdrop-blur-md sticky top-0 z-10 shrink-0 shadow-sm" style={{ color: 'var(--text-muted)', background: 'var(--surface-shell)' }}>
                         <span>
                             {search ? (
                                 `Results`
@@ -323,7 +324,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                                 OPENMOJI_CATEGORIES[selectedCategory]?.label
                             )}
                         </span>
-                        <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+                        <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-content-secondary)', color: 'var(--text-muted)' }}>
                             {displayedEmojis.length}
                         </span>
                     </div>
@@ -334,8 +335,8 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                         className="flex-1 overflow-y-auto p-2 sm:p-4 custom-scrollbar"
                     >
                         {displayedEmojis.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-zinc-400">
-                                <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-3">
+                            <div className="flex flex-col items-center justify-center h-48" style={{ color: 'var(--text-muted)' }}>
+                                <div className="p-4 rounded-full mb-3" style={{ background: 'var(--surface-content-secondary)' }}>
                                     <OpenMoji hexcode="1F50D" size={32} className="opacity-50" />
                                 </div>
                                 <span className="text-sm font-medium">No results found</span>
@@ -360,18 +361,18 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
 
                 {/* Footer */}
                 {currentEmoji && (
-                    <div className={`px-4 py-3 border-t border-[var(--border-primary)] dark:border-[var(--border-subtle)] bg-[#FFFDF8]/98 dark:bg-[#1A1A1A]/98 backdrop-blur-md flex items-center justify-end shrink-0 ${isMobile ? 'pb-8' : ''}`}>
+                    <div className={`px-4 py-3 backdrop-blur-md flex items-center justify-end shrink-0 ${isMobile ? 'pb-8' : ''}`} style={{ borderTop: '1px solid var(--border-primary)', background: 'var(--surface-shell)' }}>
                         <button
                             onClick={handleRemoveEmoji}
                             className="group flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all hover:opacity-90"
                             style={{
-                                color: '#ef4444', // Brighter red text for better readability
-                                background: 'rgba(239, 68, 68, 0.15)', // More visible background
+                                color: '#ef4444',
+                                background: 'rgba(239, 68, 68, 0.15)',
                             }}
                         >
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--status-error)' }}></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--status-error)' }}></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#ef4444' }}></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#ef4444' }}></span>
                             </span>
                             Remove Icon
                         </button>
@@ -485,7 +486,13 @@ export function IconButton({ icon, onIconChange, size = 'md', className = '', pl
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={togglePicker}
-                className={`flex items-center justify-center rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-600 transition-all ${sizeClasses[size]} ${className}`}
+                className={`flex items-center justify-center rounded-xl transition-all ${sizeClasses[size]} ${className}`}
+                style={{
+                    background: 'var(--surface-content-secondary)',
+                    border: '1px solid var(--border-primary)'
+                }}
+                onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'var(--surface-shell-hover)' })}
+                onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'var(--surface-content-secondary)' })}
                 title={icon ? 'Change icon' : 'Add icon'}
             >
                 {icon ? (

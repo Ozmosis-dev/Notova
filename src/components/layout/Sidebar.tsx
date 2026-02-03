@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { ReportIssueModal } from '@/components/ui/ReportIssueModal';
 import { AddToHomeScreenModal } from '@/components/ui/AddToHomeScreenModal';
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 
 interface Notebook {
     id: string;
@@ -513,7 +514,7 @@ export function Sidebar({
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute left-0 bottom-full mb-2 w-full rounded-xl overflow-hidden z-50"
+                                        className="absolute left-0 bottom-full mb-2 w-full rounded-xl overflow-visible z-50"
                                         style={{
                                             background: 'var(--surface-shell)',
                                             border: '1px solid var(--border-primary)',
@@ -533,7 +534,7 @@ export function Sidebar({
                                             </p>
                                             <p
                                                 className="text-sm font-semibold truncate mt-0.5"
-                                                style={{ color: 'var(--text-on-shell, var(--text-primary))' }}
+                                                style={{ color: 'var(--text-on-shell-secondary, var(--text-muted))' }}
                                             >
                                                 {user.email}
                                             </p>
@@ -541,6 +542,7 @@ export function Sidebar({
 
                                         {/* Menu items */}
                                         <div className="py-1.5">
+
                                             <button
                                                 onClick={handleReportIssue}
                                                 className="w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
@@ -567,6 +569,9 @@ export function Sidebar({
                             </AnimatePresence>
                         </div>
                     )}
+
+                    {/* Theme Selector */}
+                    <ThemeSwitcher />
 
                     {/* Trash Button */}
                     <motion.button
