@@ -1,4 +1,10 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-lufga), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ================================================================
@@ -7,61 +13,7 @@
    ================================================================ */
 
 /* Lufga Font Family */
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 300;
-  src: local('Lufga Light'), url('/lufga-webfont/LufgaLight.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 400;
-  src: local('Lufga Regular'), url('/lufga-webfont/LufgaRegular.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: italic;
-  font-weight: 400;
-  src: local('Lufga Italic'), url('/lufga-webfont/LufgaItalic.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 500;
-  src: local('Lufga Medium'), url('/lufga-webfont/LufgaMedium.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 600;
-  src: local('Lufga SemiBold'), url('/lufga-webfont/LufgaSemiBold.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 700;
-  src: local('Lufga Bold'), url('/lufga-webfont/LufgaBold.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 800;
-  src: local('Lufga ExtraBold'), url('/lufga-webfont/LufgaExtraBold.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Lufga';
-  font-style: normal;
-  font-weight: 900;
-  src: local('Lufga Black'), url('/lufga-webfont/LufgaBlack.woff') format('woff');
-}
+/* Lufga Font Family - Managed via next/font in layout.tsx */
 
 /* ================================================================
    Semantic Design Tokens - Light Mode (Default)

@@ -45,6 +45,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen relative overflow-hidden text-primary" style={{
             background: 'var(--surface-shell)',
+            color: '#1A1A1A', // Explicitly force text color
             // Force light theme warm editorial palette for the landing page regardless of system preference
             // @ts-ignore
             '--surface-shell': '#FAF6EE',
