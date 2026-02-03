@@ -508,8 +508,7 @@ export function NotesList({
                                                     ? 'var(--shadow-xl), 0 0 0 3px var(--selection-ring)'
                                                     : 'var(--shadow-md)',
                                                 minHeight: '140px',
-                                                paddingBottom: note.tags && note.tags.length > 0 ? '40px' : undefined,
-                                                overflow: note.tags && note.tags.length > 0 ? 'hidden' : 'visible'
+                                                overflow: 'hidden'
                                             }}
                                         >
                                             {/* Favorite sparkle indicator - top right corner */}
@@ -572,7 +571,7 @@ export function NotesList({
                                             </p>
 
                                             {/* Footer: Date with inline action icons */}
-                                            <div className="flex items-center justify-between gap-1 mt-auto pt-2 pb-1">
+                                            <div className="flex items-center justify-between gap-1 mt-auto pt-2 pb-1 relative z-10">
                                                 <span
                                                     className="text-xs opacity-70 tabular-nums shrink-0"
                                                 >
@@ -648,10 +647,10 @@ export function NotesList({
                                                 </div>
                                             </div>
 
-                                            {/* Tags Drawer - appears below main content */}
+                                            {/* Tags Drawer - part of normal flow so cards grow with tag rows */}
                                             {note.tags && note.tags.length > 0 && (
                                                 <div
-                                                    className="absolute bottom-0 left-0 right-0 rounded-b-2xl overflow-hidden"
+                                                    className="-mx-4 -mb-4 mt-2 rounded-b-2xl overflow-hidden"
                                                     style={{
                                                         background: isDarkCard
                                                             ? 'rgba(0, 0, 0, 0.25)'

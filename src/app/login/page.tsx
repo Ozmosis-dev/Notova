@@ -272,7 +272,7 @@ export default function LoginPage() {
                                 </div>
                             </div>
                         </motion.div>
-                        <div className="mb-8 text-center">
+                        <div className="mb-8 text-left md:text-center">
                             <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
                             <p className="text-secondary text-sm">Enter your credentials to access your workspace</p>
                         </div>
@@ -293,7 +293,8 @@ export default function LoginPage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="you@example.com"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 transition-all outline-none text-base"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
+                                        style={{ outline: 'none', boxShadow: 'none' }}
                                         required
                                     />
                                 </div>
@@ -304,7 +305,8 @@ export default function LoginPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 transition-all outline-none text-base"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
+                                        style={{ outline: 'none', boxShadow: 'none' }}
                                         required
                                     />
                                 </div>
