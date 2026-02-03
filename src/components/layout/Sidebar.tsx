@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { ReportIssueModal } from '@/components/ui/ReportIssueModal';
+import { AddToHomeScreenModal } from '@/components/ui/AddToHomeScreenModal';
 
 interface Notebook {
     id: string;
@@ -76,6 +77,7 @@ export function Sidebar({
     const [isDeleting, setIsDeleting] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false);
+    const [isAddToHomeScreenModalOpen, setIsAddToHomeScreenModalOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
     const { user, loading, signOut } = useAuth();
 
@@ -435,11 +437,36 @@ export function Sidebar({
                     </div>
                 </div>
 
+                {/* Add to Home Screen Button */}
+                <div className="px-3 md:px-4 pb-2">
+                    <motion.button
+                        whileHover={{ x: 2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                            setIsAddToHomeScreenModalOpen(true);
+                            onItemClick?.();
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                        style={{ color: 'var(--accent-primary)' }}
+                    >
+                        <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                            style={{ background: 'var(--surface-shell-hover)' }}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <span className="flex-1 text-left">Add to Home Screen</span>
+                    </motion.button>
+                </div>
+
                 {/* Bottom - Profile & Trash */}
                 <div
                     className="p-3 md:p-4 space-y-2"
                     style={{ borderTop: '1px solid var(--border-subtle)' }}
                 >
+
                     {/* User Profile Menu */}
                     {!loading && user && (
                         <div
@@ -614,6 +641,12 @@ export function Sidebar({
                 onClose={() => setIsReportIssueModalOpen(false)}
                 userEmail={user?.email || undefined}
                 userId={user?.id || undefined}
+            />
+
+            {/* Add to Home Screen Modal */}
+            <AddToHomeScreenModal
+                isOpen={isAddToHomeScreenModalOpen}
+                onClose={() => setIsAddToHomeScreenModalOpen(false)}
             />
         </>
     );

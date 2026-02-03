@@ -126,8 +126,10 @@ export default function LoginPage() {
 
                     <div className="relative">
                         <h1 className="text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight">
-                            Capture your <br />
-                            <span className="gradient-text">best ideas</span> <br />
+                            Capture your
+                            <br />
+                            <span className="gradient-text">best ideas</span>
+                            <br />
                             <span className="relative inline-block">
                                 <span className="relative z-10">
                                     beautifully.
@@ -137,7 +139,7 @@ export default function LoginPage() {
                                     className="absolute -bottom-2 -left-2 w-[110%] h-auto z-0"
                                     initial={{ pathLength: 0, opacity: 0 }}
                                     animate={{ pathLength: 1, opacity: 1 }}
-                                    transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
+                                    transition={{ duration: 1.5, delay: 1, ease: "easeInOut" }}
                                 >
                                     <path
                                         d="M5 12 Q 143 5 281 12"
@@ -219,114 +221,114 @@ export default function LoginPage() {
                 {/* Right Column: Login Card & Mockup */}
                 <div className="relative">
                     {/* Floating Mockup Behind */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        className="absolute top-[-100px] right-[-50px] w-full h-[600px] hidden lg:block z-0 transform -rotate-6"
-                    >
-                        <Image
-                            src="/images/app-mockup.png"
-                            alt="Notova App Interface"
-                            fill
-                            className="object-contain drop-shadow-2xl opacity-80"
-                            priority
-                        />
-                    </motion.div>
+
 
                     {/* Login Card */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.4 }}
-                        id="login-card"
-                        className="relative z-10 glass-warm rounded-3xl p-8 shadow-warm-xl border border-white/40 backdrop-blur-xl max-w-md mx-auto lg:ml-auto"
-                    >
-                        {/* Mobile Badge - Overlapping Top Right */}
+                    <div className="relative isolate">
+                        {/* Animated Gradient Background */}
+                        {/* Animated Gradient Background */}
+                        <div
+                            className="absolute top-[20%] left-[20%] -right-8 -bottom-8 bg-gradient-to-r from-[var(--accent-primary)] via-[var(--highlight)] to-[var(--accent-primary)] rounded-[3rem] opacity-40 blur-[90px] animate-gradient-flow pointer-events-none -z-20"
+                            aria-hidden="true"
+                        />
+                        {/* Softening Overlay */}
+                        <div
+                            className="absolute inset-0 bg-[var(--surface-shell)]/10 rounded-3xl -z-10 pointer-events-none mix-blend-overlay"
+                            aria-hidden="true"
+                        />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0, rotate: 15 }}
-                            animate={{ opacity: 1, scale: 1, rotate: 15 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.6 }}
-                            className="absolute -top-12 -right-3 z-20 md:hidden block pointer-events-none"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 0.4 }}
+                            id="login-card"
+                            className="relative z-10 glass-warm rounded-3xl p-8 shadow-warm-xl border border-white/40 backdrop-blur-xl max-w-md mx-auto lg:ml-auto"
                         >
-                            <div className="relative w-28 h-28 flex items-center justify-center">
-                                {/* Image Starburst Badge */}
-                                <Image
-                                    src="/badge-starburst.png"
-                                    alt="Best Evernote Alternative Badge"
-                                    fill
-                                    className="object-contain drop-shadow-md"
-                                />
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center transform -rotate-12 z-10 pl-1 pt-1">
-                                    <div className="text-white font-bold text-[10px] leading-none flex flex-col items-center gap-0.5">
-                                        <div className="flex items-center gap-1">
-                                            <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#E8783A]" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                            <span>Best</span>
+                            {/* Mobile Badge - Overlapping Top Right */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0, rotate: 15 }}
+                                animate={{ opacity: 1, scale: 1, rotate: 15 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.6 }}
+                                className="absolute -top-12 -right-3 z-20 md:hidden block pointer-events-none"
+                            >
+                                <div className="relative w-28 h-28 flex items-center justify-center">
+                                    {/* Image Starburst Badge */}
+                                    <Image
+                                        src="/badge-starburst.png"
+                                        alt="Best Evernote Alternative Badge"
+                                        fill
+                                        className="object-contain drop-shadow-md"
+                                    />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center transform -rotate-12 z-10 pl-1 pt-1">
+                                        <div className="text-white font-bold text-[10px] leading-none flex flex-col items-center gap-0.5">
+                                            <div className="flex items-center gap-1">
+                                                <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#E8783A]" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                                <span>Best</span>
+                                            </div>
+                                            <span>Evernote</span>
+                                            <span>Alternative</span>
+                                            <span>in 2026</span>
                                         </div>
-                                        <span>Evernote</span>
-                                        <span>Alternative</span>
-                                        <span>in 2026</span>
                                     </div>
                                 </div>
+                            </motion.div>
+                            <div className="mb-8 text-left md:text-center">
+                                <h2 className="text-2xl font-bold mb-2">Welcome to Notova</h2>
+                                <p className="text-secondary text-sm">Enter your credentials to access your workspace</p>
+                            </div>
+
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                {error && (
+                                    <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
+                                        <div className="w-1 h-1 rounded-full bg-red-500" />
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="you@example.com"
+                                            className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
+                                            style={{ outline: 'none', boxShadow: 'none' }}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Password</label>
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
+                                            style={{ outline: 'none', boxShadow: 'none' }}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-4 rounded-xl font-bold text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                                    style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
+                                >
+                                    {loading ? 'Signing in...' : 'Sign In'}
+                                    {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+                                </button>
+                            </form>
+
+                            <div className="mt-6 text-center text-sm text-secondary">
+                                Don't have an account? <Link href="/signup" className="font-bold underline decoration-2 decoration-(--accent-primary) hover:text-primary transition-colors">Join Notova</Link>
                             </div>
                         </motion.div>
-                        <div className="mb-8 text-left md:text-center">
-                            <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
-                            <p className="text-secondary text-sm">Enter your credentials to access your workspace</p>
-                        </div>
-
-                        <form onSubmit={handleLogin} className="space-y-5">
-                            {error && (
-                                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
-                                    <div className="w-1 h-1 rounded-full bg-red-500" />
-                                    {error}
-                                </div>
-                            )}
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="you@example.com"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
-                                        style={{ outline: 'none', boxShadow: 'none' }}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Password</label>
-                                    <input
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-white/60 border border-transparent focus:bg-white focus:border-(--accent-primary) focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base shadow-none"
-                                        style={{ outline: 'none', boxShadow: 'none' }}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-4 rounded-xl font-bold text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-                                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
-                            >
-                                {loading ? 'Signing in...' : 'Sign In'}
-                                {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
-                            </button>
-                        </form>
-
-                        <div className="mt-6 text-center text-sm text-secondary">
-                            Don't have an account? <Link href="/signup" className="font-bold underline decoration-2 decoration-(--accent-primary) hover:text-primary transition-colors">Join Notova</Link>
-                        </div>
-                    </motion.div>
+                    </div>
                 </div>
             </main>
 
