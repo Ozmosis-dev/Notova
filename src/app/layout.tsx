@@ -113,6 +113,24 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://notova.app"),
 };
 
+// Script to prevent FOUC (Flash of Unstyled Content) by applying theme before React hydrates
+const themeScript = `
+  (function() {
+    try {
+      var theme = localStorage.getItem('theme');
+      if (theme) {
+        // next-themes stores the theme value directly
+        document.documentElement.classList.add(theme);
+      } else {
+        // Default to dark theme
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -120,6 +138,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Inline script to prevent theme flash - runs before React hydrates */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={`${lufga.variable} ${geistMono.variable} antialiased font-sans`}
         suppressHydrationWarning
