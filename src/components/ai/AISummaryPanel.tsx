@@ -66,7 +66,7 @@ export function AISummaryPanel({
     const copyToClipboard = () => {
         if (!data) return;
 
-        let content = `# AI Summary: ${title}\n\n`;
+        let content = `# Summarize: ${title}\n\n`;
         content += `${data.summary}\n\n`;
 
         if ('keyPoints' in data && data.keyPoints) {
@@ -109,7 +109,7 @@ export function AISummaryPanel({
             case 'search':
                 return 'Search Insights';
             default:
-                return 'AI Summary';
+                return 'Summarize';
         }
     };
 

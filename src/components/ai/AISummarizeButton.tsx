@@ -59,7 +59,7 @@ export function AISummarizeButton({
                 ) : (
                     <Sparkles size={14} />
                 )}
-                <span>Summarize</span>
+                <span className="hidden sm:inline">Summarize</span>
             </button>
         );
     }
@@ -75,7 +75,7 @@ export function AISummarizeButton({
             ) : (
                 <Sparkles size={16} />
             )}
-            <span>AI Summarize</span>
+            <span className="hidden sm:inline">Summarize</span>
         </button>
     );
 }

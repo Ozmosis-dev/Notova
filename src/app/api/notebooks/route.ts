@@ -116,6 +116,66 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Check if we should remove the default "My Notes" notebook
+        // This acts as cleanup for the initial onboarding notebook after the user creates their own
+        try {
+            // Find "My Notes" notebook to potentially clean up
+            const defaultMyNotes = await prisma.notebook.findFirst({
+                where: {
+                    userId,
+                    name: 'My Notes', // Name is the primary identifier for the onboarding notebook
+                    NOT: {
+                        id: notebook.id // Don't delete the one we just created
+                    }
+                },
+                include: {
+                    _count: {
+                        select: { notes: true }
+                    }
+                }
+            });
+
+            if (defaultMyNotes) {
+                let shouldDelete = false;
+
+                // Case 1: Strictly empty
+                if (defaultMyNotes._count.notes === 0) {
+                    shouldDelete = true;
+                }
+                // Case 2: Contains only empty/untitled notes
+                else {
+                    const notesInMyNotes = await prisma.note.findMany({
+                        where: {
+                            notebookId: defaultMyNotes.id,
+                            isTrash: false
+                        },
+                        select: {
+                            title: true,
+                            contentPlaintext: true,
+                            content: true
+                        }
+                    });
+
+                    if (notesInMyNotes.length > 0 && notesInMyNotes.every(n =>
+                        n.title === 'Untitled' &&
+                        (!n.contentPlaintext || n.contentPlaintext.trim() === '') &&
+                        (!n.content || n.content.trim() === '' || n.content === '<p></p>' || n.content === '<p><br></p>')
+                    )) {
+                        shouldDelete = true;
+                    }
+                }
+
+                if (shouldDelete) {
+                    await prisma.notebook.delete({
+                        where: { id: defaultMyNotes.id }
+                    });
+                }
+            }
+        } catch (cleanupError) {
+            // Non-blocking cleanup error
+            console.error('Error cleaning up default notebook:', cleanupError);
+        }
+
         return NextResponse.json(notebook, { status: 201 });
     } catch (error) {
         console.error('Error creating notebook:', error);

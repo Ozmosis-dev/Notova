@@ -1040,7 +1040,7 @@ export function NoteEditor({
                                 ) : (
                                     <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
                                 )}
-                                <span>AI Summary</span>
+                                <span className="hidden sm:inline">Summarize</span>
                             </motion.button>
                         )}
                     </div>

@@ -488,11 +488,10 @@ export function IconButton({ icon, onIconChange, size = 'md', className = '', pl
                 onClick={togglePicker}
                 className={`flex items-center justify-center rounded-xl transition-all ${sizeClasses[size]} ${className}`}
                 style={{
-                    background: 'var(--surface-content-secondary)',
-                    border: '1px solid var(--border-primary)'
+                    background: 'rgba(255,255,255,0.15)',
                 }}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'var(--surface-shell-hover)' })}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'var(--surface-content-secondary)' })}
+                onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)' })}
+                onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)' })}
                 title={icon ? 'Change icon' : 'Add icon'}
             >
                 {icon ? (

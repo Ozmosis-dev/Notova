@@ -91,6 +91,26 @@ Your response MUST be valid JSON in this exact format:
 }
 
 Be insightful and help the user understand their knowledge as a whole. Do not include any text outside the JSON.`,
+
+    SMART_TAGS: (existingTags: string[]) => `You are an intelligent note assistant for Notova.
+Analyze the notes below and suggest relevant tags that would help organize them.
+
+RULES:
+1. Suggest 3-8 tags maximum
+2. Tags should be broad enough to apply to multiple notes
+3. Use lowercase with hyphens for multi-word tags (e.g., "project-planning")
+4. Prioritize themes that appear across multiple notes
+5. Consider the existing tags and prefer reusing them when relevant: ${existingTags.length > 0 ? existingTags.join(', ') : 'None yet'}
+
+Your response MUST be valid JSON in this exact format:
+{
+  "suggestedTags": [
+    { "name": "tag-name", "reason": "Brief explanation of why this tag is useful", "noteCount": 3 }
+  ]
+}
+
+Each tag should have: name (the tag), reason (why it's useful), noteCount (how many notes it applies to).
+Do not include any text outside the JSON.`,
 };
 
 /**
@@ -241,6 +261,56 @@ ${notesContent}`;
     } catch (error) {
         console.error('Error generating search insights:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to generate insights');
+    }
+}
+
+/**
+ * Suggest smart tags for a collection of notes
+ */
+export async function suggestSmartTags(
+    notes: Array<{ title: string; content: string }>,
+    existingTags: string[] = []
+): Promise<{
+    suggestedTags: Array<{ name: string; reason: string; noteCount: number }>;
+}> {
+    const client = getClient();
+    const model = client.getGenerativeModel({
+        model: 'models/gemini-2.0-flash',
+        safetySettings,
+        generationConfig: { ...generationConfig, maxOutputTokens: 1024 },
+    });
+
+    // Prepare notes content (truncate if too long)
+    const notesContent = notes
+        .slice(0, 30) // Limit to 30 notes to avoid token limits
+        .map((note, i) => `--- Note ${i + 1}: ${note.title} ---\n${note.content.substring(0, 600)}`)
+        .join('\n\n');
+
+    const prompt = `${PROMPTS.SMART_TAGS(existingTags)}
+
+Number of notes to analyze: ${notes.length}
+
+Notes Content:
+${notesContent}`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Parse JSON response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('Invalid AI response format');
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+            suggestedTags: Array.isArray(parsed.suggestedTags) ? parsed.suggestedTags : [],
+        };
+    } catch (error) {
+        console.error('Error suggesting smart tags:', error);
+        throw new Error(error instanceof Error ? error.message : 'Failed to suggest tags');
     }
 }
 

@@ -11,6 +11,7 @@ interface Notebook {
     icon?: string | null;
     noteCount: number;
     isDefault?: boolean;
+    isPinned?: boolean;
 }
 
 interface Tag {
@@ -30,6 +31,7 @@ interface AppLayoutProps {
     onTagSelect?: (id: string | null) => void;
     onNewNotebook?: () => void;
     onNotebookIconChange?: (id: string, icon: string | null) => void;
+    onNotebookPinToggle?: (id: string) => void;
     onNotebooksViewToggle?: () => void;
     onAllNotesClick?: () => void;
     onTagDelete?: (tagId: string) => Promise<void>;
@@ -51,6 +53,7 @@ export function AppLayout({
     onTagSelect,
     onNewNotebook,
     onNotebookIconChange,
+    onNotebookPinToggle,
     onNotebooksViewToggle,
     onAllNotesClick,
     onTagDelete,
@@ -211,6 +214,7 @@ export function AppLayout({
                                 }}
                                 onNewNotebook={onNewNotebook}
                                 onNotebookIconChange={onNotebookIconChange}
+                                onNotebookPinToggle={onNotebookPinToggle}
                                 onNotebooksViewToggle={onNotebooksViewToggle}
                                 onAllNotesClick={() => {
                                     onAllNotesClick?.();

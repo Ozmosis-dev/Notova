@@ -30,8 +30,9 @@ model Notebook {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes     Note[]
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
+  isDefault  Boolean  @default(false)
+  isPinned   Boolean  @default(false)
+  createdAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])

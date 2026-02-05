@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner } from '../ui/Spinner';
 import { OpenMoji } from '../ui/OpenMoji';
 import { ColorPickerPopup, getCardColorStyle, type CardColorKey } from '../notes/ColorPickerPopup';
-import { Sparkles } from 'lucide-react';
 
 interface Notebook {
     id: string;
@@ -31,7 +30,7 @@ interface NotebooksListProps {
     selectedNotebookId?: string | null;
     onNotebookSelect?: (id: string | null) => void;
     onNotebookColorChange?: (notebookId: string, color: CardColorKey) => void;
-    onNotebookDelete?: (notebookId: string) => void;
+    onNotebookDelete?: (notebookId: string, deleteNotes?: boolean) => void;
     onSummarizeNotebook?: (notebookId: string, notebookName: string) => void;
     isSummarizing?: boolean;
     summarizingNotebookId?: string | null;
@@ -69,17 +68,20 @@ export function NotebooksList({
     fullPanel = false,
 }: NotebooksListProps) {
     const [colorPickerNotebookId, setColorPickerNotebookId] = useState<string | null>(null);
-    const [pendingDeleteNotebook, setPendingDeleteNotebook] = useState<{ id: string; name: string } | null>(null);
+    const [pendingDeleteNotebook, setPendingDeleteNotebook] = useState<{ id: string; name: string; noteCount: number } | null>(null);
+    const [deleteNotesToo, setDeleteNotesToo] = useState(false);
 
     const handleDeleteConfirm = () => {
         if (pendingDeleteNotebook) {
-            onNotebookDelete?.(pendingDeleteNotebook.id);
+            onNotebookDelete?.(pendingDeleteNotebook.id, deleteNotesToo);
             setPendingDeleteNotebook(null);
+            setDeleteNotesToo(false);
         }
     };
 
     const handleDeleteCancel = () => {
         setPendingDeleteNotebook(null);
+        setDeleteNotesToo(false);
     };
 
     return (
@@ -221,49 +223,87 @@ export function NotebooksList({
                                                 minHeight: '280px',
                                             }}
                                         >
-                                            {/* Action buttons - always visible on mobile, hover on desktop */}
-                                            <div className="absolute bottom-2 right-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-all z-50 flex gap-1.5">
-                                                {/* AI Summarize button - only show if notebook has notes */}
-                                                {notebook.noteCount > 0 && onSummarizeNotebook && (
-                                                    <div
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onPointerDown={(e) => {
+                                            {/* Summary button - always visible, soft with hover highlight */}
+                                            {notebook.noteCount > 0 && onSummarizeNotebook && (
+                                                <div
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onPointerDown={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        onSummarizeNotebook(notebook.id, notebook.name);
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
                                                             e.stopPropagation();
                                                             e.preventDefault();
                                                             onSummarizeNotebook(notebook.id, notebook.name);
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            e.preventDefault();
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                                e.stopPropagation();
-                                                                e.preventDefault();
-                                                                onSummarizeNotebook(notebook.id, notebook.name);
-                                                            }
-                                                        }}
-                                                        className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-110"
+                                                        }
+                                                    }}
+                                                    className={`absolute top-3 right-3 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-200 z-50 ${isSummarizing && summarizingNotebookId === notebook.id
+                                                        ? ''
+                                                        : 'hover:scale-105'
+                                                        }`}
+                                                    style={{
+                                                        background: isSummarizing && summarizingNotebookId === notebook.id
+                                                            ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)'
+                                                            : isDarkCard
+                                                                ? 'rgba(255,255,255,0.08)'
+                                                                : 'rgba(0,0,0,0.03)',
+                                                        backdropFilter: 'blur(8px)',
+                                                        border: 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!(isSummarizing && summarizingNotebookId === notebook.id)) {
+                                                            e.currentTarget.style.background = isDarkCard
+                                                                ? 'rgba(255,255,255,0.18)'
+                                                                : 'rgba(0,0,0,0.08)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!(isSummarizing && summarizingNotebookId === notebook.id)) {
+                                                            e.currentTarget.style.background = isDarkCard
+                                                                ? 'rgba(255,255,255,0.08)'
+                                                                : 'rgba(0,0,0,0.03)';
+                                                        }
+                                                    }}
+                                                    title="Summarize notebook with AI"
+                                                >
+                                                    <svg
+                                                        width="12"
+                                                        height="12"
+                                                        viewBox="0 0 24 24"
+                                                        fill="currentColor"
+                                                        className={isSummarizing && summarizingNotebookId === notebook.id ? 'animate-pulse' : ''}
                                                         style={{
-                                                            background: isSummarizing && summarizingNotebookId === notebook.id
-                                                                ? 'var(--ai-gradient-primary)'
-                                                                : isDarkCard
-                                                                    ? 'rgba(255,255,255,0.15)'
-                                                                    : isDefaultCard
-                                                                        ? 'rgba(0,0,0,0.12)'
-                                                                        : 'rgba(0,0,0,0.08)',
-                                                            backdropFilter: 'blur(4px)'
+                                                            color: isSummarizing && summarizingNotebookId === notebook.id
+                                                                ? 'var(--text-on-accent)'
+                                                                : 'var(--accent-primary)',
+                                                            opacity: isSummarizing && summarizingNotebookId === notebook.id ? 1 : 0.8
                                                         }}
-                                                        title="Summarize notebook with AI"
                                                     >
-                                                        <Sparkles
-                                                            size={14}
-                                                            className={isSummarizing && summarizingNotebookId === notebook.id ? 'animate-pulse' : ''}
-                                                            style={{ opacity: 0.7 }}
-                                                        />
-                                                    </div>
-                                                )}
+                                                        <path d="M12 2L9.5 9.5L2 12L9.5 14.5L12 22L14.5 14.5L22 12L14.5 9.5L12 2Z" />
+                                                    </svg>
+                                                    <span
+                                                        className="text-[10px] font-medium hidden sm:inline"
+                                                        style={{
+                                                            color: isSummarizing && summarizingNotebookId === notebook.id
+                                                                ? 'var(--text-on-accent)'
+                                                                : 'var(--accent-primary)',
+                                                            opacity: isSummarizing && summarizingNotebookId === notebook.id ? 1 : 0.8
+                                                        }}
+                                                    >
+                                                        {isSummarizing && summarizingNotebookId === notebook.id ? 'Summarizing...' : 'Summarize'}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Action buttons - always visible on mobile, hover on desktop */}
+                                            <div className="absolute bottom-2 right-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-all z-50 flex gap-1.5">
 
                                                 {/* Delete button */}
                                                 {!notebook.isDefault && (
@@ -273,7 +313,7 @@ export function NotebooksList({
                                                         onPointerDown={(e) => {
                                                             e.stopPropagation();
                                                             e.preventDefault();
-                                                            setPendingDeleteNotebook({ id: notebook.id, name: notebook.name });
+                                                            setPendingDeleteNotebook({ id: notebook.id, name: notebook.name, noteCount: notebook.noteCount });
                                                         }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -283,7 +323,7 @@ export function NotebooksList({
                                                             if (e.key === 'Enter' || e.key === ' ') {
                                                                 e.stopPropagation();
                                                                 e.preventDefault();
-                                                                setPendingDeleteNotebook({ id: notebook.id, name: notebook.name });
+                                                                setPendingDeleteNotebook({ id: notebook.id, name: notebook.name, noteCount: notebook.noteCount });
                                                             }
                                                         }}
 
@@ -347,12 +387,19 @@ export function NotebooksList({
                                                 {/* Notebook Icon */}
                                                 <div className="mb-3">
                                                     {notebook.icon ? (
-                                                        <OpenMoji hexcode={notebook.icon} size={32} />
+                                                        <div
+                                                            className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                                            style={{
+                                                                background: (isDarkCard || isDefaultCard) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.7)',
+                                                            }}
+                                                        >
+                                                            <OpenMoji hexcode={notebook.icon} size={24} />
+                                                        </div>
                                                     ) : (
                                                         <div
                                                             className="w-10 h-10 rounded-xl flex items-center justify-center"
                                                             style={{
-                                                                background: 'var(--highlight-soft)',
+                                                                background: (isDarkCard || isDefaultCard) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.7)',
                                                             }}
                                                         >
                                                             <svg
@@ -376,40 +423,64 @@ export function NotebooksList({
                                                     {notebook.name}
                                                 </h3>
 
-                                                {/* Notes Preview Section */}
+                                                {/* Notes Preview Section - use noteCount for accuracy */}
                                                 <div className="mt-3 flex-1 min-h-0">
-                                                    {notebookNotes.length > 0 ? (
-                                                        <div className="space-y-1.5">
-                                                            {notebookNotes.map(note => {
-                                                                const noteCardColor = note.cardColor as CardColorKey;
-                                                                const noteIsDark = noteCardColor === 'black' || noteCardColor === 'navy' || noteCardColor === 'purple';
-                                                                const noteIsDefault = !noteCardColor || noteCardColor === 'default';
-                                                                const noteBgColor = getCardColorStyle(noteCardColor);
-                                                                // If note has no color, inherit text color from parent notebook
-                                                                const noteTextColor = noteIsDefault
-                                                                    ? textColor // Inherit from notebook
-                                                                    : noteIsDark
-                                                                        ? 'var(--text-on-dark)'
-                                                                        : 'var(--text-on-accent)';
+                                                    {notebook.noteCount > 0 ? (
+                                                        notebookNotes.length > 0 ? (
+                                                            <div className="space-y-1.5">
+                                                                {notebookNotes.map(note => {
+                                                                    const noteCardColor = note.cardColor as CardColorKey;
+                                                                    const noteIsDark = noteCardColor === 'black' || noteCardColor === 'navy' || noteCardColor === 'purple';
+                                                                    const noteIsDefault = !noteCardColor || noteCardColor === 'default';
+                                                                    const noteBgColor = getCardColorStyle(noteCardColor);
+                                                                    // If note has no color, inherit text color from parent notebook
+                                                                    const noteTextColor = noteIsDefault
+                                                                        ? textColor // Inherit from notebook
+                                                                        : noteIsDark
+                                                                            ? 'var(--text-on-dark)'
+                                                                            : 'var(--text-on-accent)';
 
-                                                                return (
-                                                                    <div
-                                                                        key={note.id}
-                                                                        className="p-2 rounded-lg flex items-center gap-2 text-xs transition-opacity hover:opacity-80"
-                                                                        style={{
-                                                                            background: noteBgColor,
-                                                                            color: noteTextColor,
-                                                                            opacity: 0.95
-                                                                        }}
-                                                                    >
-                                                                        {note.icon && (
-                                                                            <OpenMoji hexcode={note.icon} size={16} />
-                                                                        )}
-                                                                        <span className="truncate font-medium">{note.title}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                                    return (
+                                                                        <div
+                                                                            key={note.id}
+                                                                            className="p-2 rounded-lg flex items-center gap-2 text-xs transition-opacity hover:opacity-70"
+                                                                            style={{
+                                                                                background: noteBgColor,
+                                                                                color: noteTextColor,
+                                                                                opacity: 0.65
+                                                                            }}
+                                                                        >
+                                                                            {/* Note icon - custom or default */}
+                                                                            {note.icon ? (
+                                                                                <OpenMoji hexcode={note.icon} size={14} />
+                                                                            ) : (
+                                                                                <svg
+                                                                                    className="w-3.5 h-3.5 shrink-0"
+                                                                                    style={{ opacity: 0.5 }}
+                                                                                    fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                >
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                                </svg>
+                                                                            )}
+                                                                            <span className="truncate font-medium" style={{ opacity: 0.85 }}>{note.title}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            // Notes exist but previews not loaded yet
+                                                            <p
+                                                                className="text-xs italic"
+                                                                style={{
+                                                                    color: isDarkCard ? 'var(--text-on-dark)' : 'var(--text-muted)',
+                                                                    opacity: 0.6
+                                                                }}
+                                                            >
+                                                                Loading previews...
+                                                            </p>
+                                                        )
                                                     ) : (
                                                         <p
                                                             className="text-xs italic"
@@ -423,25 +494,14 @@ export function NotebooksList({
                                                     )}
                                                 </div>
 
-                                                {/* Note Count & Default Badge */}
+                                                {/* Note Count */}
                                                 <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: `1px solid ${isDarkCard ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}` }}>
                                                     <span
                                                         className="text-xs"
-                                                        style={{ opacity: 0.7 }}
+                                                        style={{ opacity: 0.5 }}
                                                     >
                                                         {notebook.noteCount} {notebook.noteCount === 1 ? 'note' : 'notes'}
                                                     </span>
-                                                    {notebook.isDefault && (
-                                                        <span
-                                                            className="px-1.5 py-0.5 text-[10px] font-medium rounded"
-                                                            style={{
-                                                                background: isDarkCard ? 'rgba(255,255,255,0.15)' : 'var(--highlight-soft)',
-                                                                color: isDarkCard ? 'var(--text-on-dark)' : 'var(--accent-primary)'
-                                                            }}
-                                                        >
-                                                            Default
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
 
@@ -553,34 +613,82 @@ export function NotebooksList({
                             </div>
 
                             <p
-                                className="text-sm mb-6"
+                                className="text-sm mb-4"
                                 style={{ color: 'var(--text-secondary)' }}
                             >
-                                Are you sure you want to delete &quot;<strong style={{ color: 'var(--text-primary)' }}>{pendingDeleteNotebook.name}</strong>&quot;? Notes in this notebook will be moved to the default notebook.
+                                Are you sure you want to delete &quot;<strong style={{ color: 'var(--text-primary)' }}>{pendingDeleteNotebook.name}</strong>&quot;?
+                                {pendingDeleteNotebook.noteCount > 0 && (
+                                    <span> This notebook contains <strong style={{ color: 'var(--text-primary)' }}>{pendingDeleteNotebook.noteCount} note{pendingDeleteNotebook.noteCount !== 1 ? 's' : ''}</strong>.</span>
+                                )}
                             </p>
 
-                            <div className="flex gap-3 justify-end">
-                                <button
-                                    onClick={handleDeleteCancel}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
-                                    style={{
-                                        background: 'var(--surface-content)',
-                                        color: 'var(--text-primary)',
-                                        border: '1px solid var(--border-primary)',
-                                    }}
+                            {pendingDeleteNotebook.noteCount === 0 && (
+                                <p
+                                    className="text-sm mb-6"
+                                    style={{ color: 'var(--text-muted)' }}
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDeleteConfirm}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
-                                    style={{
-                                        background: '#ef4444',
-                                        color: 'white',
-                                    }}
-                                >
-                                    Delete
-                                </button>
+                                    This notebook is empty and can be safely deleted.
+                                </p>
+                            )}
+
+                            <div className={`flex items-center ${pendingDeleteNotebook.noteCount > 0 ? 'justify-between' : 'justify-end'} gap-3`}>
+                                {pendingDeleteNotebook.noteCount > 0 && (
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <div
+                                            className="relative w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                                            style={{
+                                                background: deleteNotesToo ? '#ef4444' : 'var(--surface-shell)',
+                                                border: deleteNotesToo ? 'none' : '1.5px solid var(--border-primary)'
+                                            }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={deleteNotesToo}
+                                                onChange={(e) => setDeleteNotesToo(e.target.checked)}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            {deleteNotesToo ? (
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="var(--text-muted)" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <span
+                                            className="text-sm transition-colors"
+                                            style={{ color: deleteNotesToo ? '#ef4444' : 'var(--text-secondary)' }}
+                                        >
+                                            Delete all notes
+                                        </span>
+                                    </label>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleDeleteCancel}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                                        style={{
+                                            background: 'var(--surface-content)',
+                                            color: 'var(--text-primary)',
+                                            border: '1px solid var(--border-primary)',
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteConfirm}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                                        style={{
+                                            background: deleteNotesToo ? '#dc2626' : '#ef4444',
+                                            color: 'white',
+                                        }}
+                                    >
+                                        {deleteNotesToo ? 'Delete All' : 'Delete'}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

@@ -6,6 +6,7 @@ import { Spinner } from '../ui/Spinner';
 import { OpenMoji } from '../ui/OpenMoji';
 import { ColorPickerPopup, getCardColorStyle, type CardColorKey } from './ColorPickerPopup';
 import { AISearchInsightsButton } from '../ai/AISearchInsightsButton';
+import { SmartTagModal } from '../ai/SmartTagModal';
 import { Sparkles, Loader2 } from 'lucide-react';
 
 // Filter chip options
@@ -57,6 +58,23 @@ interface NotesListProps {
     isSummarizingNotebook?: boolean;
     // Tags filter props
     allTags?: Tag[];
+    // Smart Tags props
+    onGenerateSmartTags?: (noteIds: string[]) => void;
+    isGeneratingSmartTags?: boolean;
+    smartTagsModalOpen?: boolean;
+    onCloseSmartTagsModal?: () => void;
+    smartTagsSuggestions?: Array<{ name: string; reason: string; noteCount: number }>;
+    smartTagsSelected?: Set<string>;
+    onToggleSmartTag?: (tagName: string) => void;
+    onSelectAllSmartTags?: () => void;
+    onDeselectAllSmartTags?: () => void;
+    onApplySmartTags?: () => void;
+    isApplyingSmartTags?: boolean;
+    smartTagsError?: string | null;
+    smartTagsNoteCount?: number;
+    isDefaultNotebook?: boolean;
+    notebookCount?: number;
+    onNotebookDelete?: (notebookId: string, deleteNotes?: boolean) => void;
 }
 
 function formatRelativeDate(date: Date | string): string {
@@ -117,11 +135,47 @@ export function NotesList({
     onSummarizeNotebook,
     isSummarizingNotebook = false,
     allTags = [],
+    // Smart Tags props
+    onGenerateSmartTags,
+    isGeneratingSmartTags = false,
+    smartTagsModalOpen = false,
+    onCloseSmartTagsModal,
+    smartTagsSuggestions = [],
+    smartTagsSelected = new Set<string>(),
+    onToggleSmartTag,
+    onSelectAllSmartTags,
+    onDeselectAllSmartTags,
+    onApplySmartTags,
+    isApplyingSmartTags = false,
+    smartTagsError = null,
+    smartTagsNoteCount = 0,
+    isDefaultNotebook,
+    notebookCount,
+    onNotebookDelete,
 }: NotesListProps) {
     const [activeFilter, setActiveFilter] = useState('all');
     const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
     const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
     const [isCreatingNote, setIsCreatingNote] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteNotesToo, setDeleteNotesToo] = useState(false);
+
+    // Use notebookCount if available for delete modal, otherwise fallback to visible notes length
+    // (though notebookCount is preferred for safety)
+    const displayNoteCount = notebookCount ?? notes.length;
+
+    const handleDeleteConfirm = () => {
+        if (notebookId && onNotebookDelete) {
+            onNotebookDelete(notebookId, deleteNotesToo);
+            setShowDeleteModal(false);
+            setDeleteNotesToo(false);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false);
+        setDeleteNotesToo(false);
+    };
 
     // Sort notes based on active filter
     const sortedNotes = useMemo(() => {
@@ -234,7 +288,32 @@ export function NotesList({
                                 ) : (
                                     <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
                                 )}
-                                <span>AI Summary</span>
+                                <span className="hidden sm:inline">Summarize</span>
+                            </motion.button>
+                        )}
+                        {!isDefaultNotebook && notebookId && onNotebookDelete && (
+                            <motion.button
+                                whileHover={{
+                                    scale: 1.02,
+                                    y: -1,
+                                    backgroundColor: 'var(--surface-card-default)',
+                                    color: 'var(--surface-card-red)',
+                                    borderColor: 'var(--surface-card-default)'
+                                }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setShowDeleteModal(true)}
+                                className="flex items-center justify-center p-2 rounded-xl transition-all shrink-0 group opacity-70 hover:opacity-100"
+                                style={{
+                                    background: 'transparent',
+                                    color: 'var(--text-muted)',
+                                    boxShadow: 'none',
+                                    border: '1px solid transparent',
+                                }}
+                                title="Delete notebook"
+                            >
+                                <svg className="w-4 h-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                             </motion.button>
                         )}
                     </div>
@@ -357,6 +436,31 @@ export function NotesList({
                         }}
                     >
                         <div className="px-5 py-3 flex gap-2 overflow-x-auto hide-scrollbar">
+                            {/* Smart Tags Button */}
+                            {onGenerateSmartTags && notes.length >= 2 && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => onGenerateSmartTags(notes.map(n => n.id))}
+                                    disabled={isGeneratingSmartTags}
+                                    className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0"
+                                    style={{
+                                        background: isGeneratingSmartTags
+                                            ? 'var(--ai-gradient-primary)'
+                                            : 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                                        color: 'var(--text-on-accent)',
+                                        opacity: isGeneratingSmartTags ? 0.8 : 1,
+                                    }}
+                                    title="Get AI-powered tag suggestions for your notes"
+                                >
+                                    {isGeneratingSmartTags ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                    ) : (
+                                        <Sparkles size={12} />
+                                    )}
+                                    <span>Smart Tags</span>
+                                </motion.button>
+                            )}
                             {selectedTagId && (
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
@@ -771,6 +875,146 @@ export function NotesList({
                     </svg>
                 )}
             </motion.button>
+
+            {/* Smart Tags Modal */}
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteModal && notebookName && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}
+                        onClick={handleDeleteCancel}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl"
+                            style={{
+                                background: 'var(--surface-content)',
+                                border: '1px solid var(--border-subtle)',
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div
+                                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                                    style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <h3
+                                    className="font-semibold text-lg"
+                                    style={{ color: 'var(--text-primary)' }}
+                                >
+                                    Delete Notebook
+                                </h3>
+                            </div>
+
+                            <p
+                                className="text-sm mb-4"
+                                style={{ color: 'var(--text-secondary)' }}
+                            >
+                                Are you sure you want to delete &quot;<strong style={{ color: 'var(--text-primary)' }}>{notebookName}</strong>&quot;?
+                                {displayNoteCount > 0 && (
+                                    <span> This notebook contains <strong style={{ color: 'var(--text-primary)' }}>{displayNoteCount} note{displayNoteCount !== 1 ? 's' : ''}</strong>.</span>
+                                )}
+                            </p>
+
+                            {displayNoteCount === 0 && (
+                                <p
+                                    className="text-sm mb-6"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    This notebook is empty and can be safely deleted.
+                                </p>
+                            )}
+
+                            <div className={`flex items-center ${displayNoteCount > 0 ? 'justify-between' : 'justify-end'} gap-3`}>
+                                {displayNoteCount > 0 && (
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <div
+                                            className="relative w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                                            style={{
+                                                background: deleteNotesToo ? '#ef4444' : 'var(--surface-shell)',
+                                                border: deleteNotesToo ? 'none' : '1.5px solid var(--border-primary)'
+                                            }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={deleteNotesToo}
+                                                onChange={(e) => setDeleteNotesToo(e.target.checked)}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            {deleteNotesToo ? (
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-2.5 h-2.5" fill="none" stroke="var(--text-muted)" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <span
+                                            className="text-sm transition-colors"
+                                            style={{ color: deleteNotesToo ? '#ef4444' : 'var(--text-secondary)' }}
+                                        >
+                                            Delete all notes
+                                        </span>
+                                    </label>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleDeleteCancel}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                                        style={{
+                                            background: 'var(--surface-content)',
+                                            color: 'var(--text-primary)',
+                                            border: '1px solid var(--border-primary)',
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteConfirm}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                                        style={{
+                                            background: deleteNotesToo ? '#dc2626' : '#ef4444',
+                                            color: 'white',
+                                        }}
+                                    >
+                                        {deleteNotesToo ? 'Delete All' : 'Delete'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            <SmartTagModal
+                isOpen={smartTagsModalOpen}
+                onClose={onCloseSmartTagsModal || (() => { })}
+                suggestedTags={smartTagsSuggestions}
+                selectedTags={smartTagsSelected}
+                onToggleTag={onToggleSmartTag || (() => { })}
+                onSelectAll={onSelectAllSmartTags || (() => { })}
+                onDeselectAll={onDeselectAllSmartTags || (() => { })}
+                onApply={onApplySmartTags || (() => { })}
+                loading={isGeneratingSmartTags}
+                applying={isApplyingSmartTags}
+                error={smartTagsError}
+                noteCount={smartTagsNoteCount}
+            />
         </div >
     );
 }

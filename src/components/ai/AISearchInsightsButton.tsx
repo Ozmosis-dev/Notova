@@ -44,7 +44,7 @@ export function AISearchInsightsButton({
             ) : (
                 <Sparkles size={14} />
             )}
-            <span>AI Summary</span>
+            <span className="hidden sm:inline">Summarize</span>
         </button>
     );
 }

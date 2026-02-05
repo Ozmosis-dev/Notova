@@ -14,6 +14,7 @@ import { useNotebookActions } from '@/hooks/useNotebooks';
 import { useTagActions, useTags } from '@/hooks/useTags';
 import { useToggleFavorite } from '@/hooks/useNotes';
 import { useAISummary } from '@/hooks/useAISummary';
+import { useSmartTags } from '@/hooks/useSmartTags';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -46,10 +47,11 @@ export default function Home() {
   const { createNotebook, deleteNotebook, loading: creatingNotebook } = useNotebookActions();
   const { deleteTag } = useTagActions();
   const { tags: allAvailableTags, refetch: refetchTags } = useTags();
+  const smartTags = useSmartTags();
   const { createNote } = useCreateNoteSWR();
   const { toggleFavorite } = useToggleFavorite();
 
-  // AI Summary hook
+  // AI Summarize hook
   const aiSummary = useAISummary({
     onSaveAsNote: async (content, title, notebookId) => {
       // Find a notebook to create the note in
@@ -118,6 +120,7 @@ export default function Home() {
       cardColor: nb.cardColor,
       noteCount: nb.noteCount,
       isDefault: nb.isDefault,
+      isPinned: nb.isPinned,
     })),
     [notebooks]
   );
@@ -501,9 +504,29 @@ export default function Home() {
     }
   }, [optimisticUpdateNotebook]);
 
+  // Handle notebook pin toggle (optimistic)
+  const handleNotebookPinToggle = useCallback(async (notebookId: string) => {
+    try {
+      // Find the notebook to get its current pinned status
+      const notebook = notebooks.find(nb => nb.id === notebookId);
+      if (!notebook) return;
+
+      const newPinnedStatus = !notebook.isPinned;
+      await optimisticUpdateNotebook(notebookId, { isPinned: newPinnedStatus }, async () => {
+        await fetch(`/api/notebooks/${notebookId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPinned: newPinnedStatus }),
+        });
+      });
+    } catch (error) {
+      console.error('Failed to toggle notebook pin:', error);
+    }
+  }, [notebooks, optimisticUpdateNotebook]);
+
   // Handle notebook delete
-  const handleNotebookDelete = useCallback(async (notebookId: string) => {
-    const success = await deleteNotebook(notebookId);
+  const handleNotebookDelete = useCallback(async (notebookId: string, deleteNotes?: boolean) => {
+    const success = await deleteNotebook(notebookId, deleteNotes);
     if (success) {
       // If we deleted the currently selected notebook, clear selection
       if (selectedNotebookId === notebookId) {
@@ -565,6 +588,7 @@ export default function Home() {
       onTagSelect={handleTagSelect}
       onNewNotebook={() => setShowNewNotebookModal(true)}
       onNotebookIconChange={handleNotebookIconChange}
+      onNotebookPinToggle={handleNotebookPinToggle}
       onNotebooksViewToggle={handleNotebooksViewToggle}
       onAllNotesClick={handleAllNotesClick}
       onImportClick={() => setShowImportModal(true)}
@@ -649,10 +673,30 @@ export default function Home() {
                   }
                   notebookName={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.name : undefined}
                   notebookId={selectedNotebookId || undefined}
+                  isDefaultNotebook={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.isDefault : undefined}
+                  notebookCount={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.noteCount : undefined}
+                  onNotebookDelete={handleNotebookDelete}
                   onBack={selectedNotebookId ? () => setSelectedNotebookId(null) : undefined}
                   onSummarizeNotebook={handleSummarizeNotebook}
                   isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookId}
                   allTags={allAvailableTags}
+                  onGenerateSmartTags={() => smartTags.generateSmartTags(mappedNotes.map(n => n.id), allAvailableTags.map(t => t.name))}
+                  isGeneratingSmartTags={smartTags.loading}
+                  smartTagsModalOpen={smartTags.modalOpen}
+                  onCloseSmartTagsModal={smartTags.closeModal}
+                  smartTagsSuggestions={smartTags.suggestedTags}
+                  smartTagsSelected={smartTags.selectedTags}
+                  onToggleSmartTag={smartTags.toggleTag}
+                  onSelectAllSmartTags={smartTags.selectAll}
+                  onDeselectAllSmartTags={smartTags.deselectAll}
+                  onApplySmartTags={async () => {
+                    await smartTags.applyTags();
+                    refetchTags();
+                    refetchAppData();
+                  }}
+                  isApplyingSmartTags={smartTags.applying}
+                  smartTagsError={smartTags.error}
+                  smartTagsNoteCount={mappedNotes.length}
                 />
               )}
             </div>
@@ -660,7 +704,7 @@ export default function Home() {
 
           {/* Notes List for Selected Notebook - Only show when a notebook is selected in notebooks view */}
           {showNotebooksView && selectedNotebookInGrid && (
-            <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex flex-1 min-w-0`}>
+            <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex ${!selectedNoteId ? 'flex-1' : ''} min-w-0`}>
               <NotesList
                 notes={mappedNotes}
                 selectedNoteId={selectedNoteId}
@@ -673,10 +717,30 @@ export default function Home() {
                 emptyMessage="No notes in this notebook"
                 notebookName={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.name}
                 notebookId={selectedNotebookInGrid}
+                isDefaultNotebook={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.isDefault}
+                notebookCount={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.noteCount}
+                onNotebookDelete={handleNotebookDelete}
                 onBack={() => setSelectedNotebookInGrid(null)}
                 onSummarizeNotebook={handleSummarizeNotebook}
                 isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookInGrid}
                 allTags={allAvailableTags}
+                onGenerateSmartTags={() => smartTags.generateSmartTags(mappedNotes.map(n => n.id), allAvailableTags.map(t => t.name))}
+                isGeneratingSmartTags={smartTags.loading}
+                smartTagsModalOpen={smartTags.modalOpen}
+                onCloseSmartTagsModal={smartTags.closeModal}
+                smartTagsSuggestions={smartTags.suggestedTags}
+                smartTagsSelected={smartTags.selectedTags}
+                onToggleSmartTag={smartTags.toggleTag}
+                onSelectAllSmartTags={smartTags.selectAll}
+                onDeselectAllSmartTags={smartTags.deselectAll}
+                onApplySmartTags={async () => {
+                  await smartTags.applyTags();
+                  refetchTags();
+                  refetchAppData();
+                }}
+                isApplyingSmartTags={smartTags.applying}
+                smartTagsError={smartTags.error}
+                smartTagsNoteCount={mappedNotes.length}
               />
             </div>
           )}
@@ -744,7 +808,7 @@ export default function Home() {
         </div>
       </Modal>
 
-      {/* AI Summary Panel */}
+      {/* AI Summarize Panel */}
       <AISummaryPanel
         isOpen={aiSummary.isOpen}
         onClose={aiSummary.closePanel}

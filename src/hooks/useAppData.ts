@@ -10,6 +10,7 @@ interface Notebook {
     icon?: string | null;
     cardColor?: string | null;
     isDefault: boolean;
+    isPinned?: boolean;
     noteCount: number;
     createdAt: string;
     updatedAt: string;
@@ -275,7 +276,7 @@ export function useAppDataMutations() {
                     };
                 },
                 rollbackOnError: true,
-                revalidate: false,
+                revalidate: true,
             }
         );
 

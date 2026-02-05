@@ -16,6 +16,7 @@ interface Notebook {
     icon?: string | null;
     noteCount: number;
     isDefault?: boolean;
+    isPinned?: boolean;
 }
 
 interface Tag {
@@ -33,6 +34,7 @@ interface SidebarProps {
     onNotebookSelect?: (id: string | null) => void;
     onTagSelect?: (id: string | null) => void;
     onNotebookIconChange?: (id: string, icon: string) => void;
+    onNotebookPinToggle?: (id: string) => void; // For toggling pinned status
     onNewNotebook?: () => void;
     onItemClick?: () => void; // For closing mobile sidebar
     onNotebooksViewToggle?: () => void; // For showing notebooks grid view
@@ -63,6 +65,7 @@ export function Sidebar({
     onNotebookSelect,
     onTagSelect,
     onNotebookIconChange,
+    onNotebookPinToggle,
     onNewNotebook,
     onItemClick,
     onNotebooksViewToggle,
@@ -107,6 +110,13 @@ export function Sidebar({
 
     // Sort tags alphabetically A-Z
     const sortedTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Sort notebooks: pinned first, then by name
+    const sortedNotebooks = [...notebooks].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0; // Keep original order for non-pinned
+    });
 
     const handleNotebookClick = (id: string | null) => {
         onNotebookSelect?.(id);
@@ -221,9 +231,26 @@ export function Sidebar({
                                     animate={{ height: 'auto', opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className="space-y-1 overflow-hidden"
+                                    className="space-y-0.5 overflow-hidden"
                                 >
-                                    {notebooks.map((notebook, index) => (
+                                    {/* New Notebook Button */}
+                                    <motion.button
+                                        whileHover={{ x: 2 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={onNewNotebook}
+                                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-colors"
+                                        style={{ color: 'var(--accent-primary)' }}
+                                    >
+                                        <div
+                                            className="w-4 h-4 rounded border-2 border-dashed border-current flex items-center justify-center"
+                                        >
+                                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                        </div>
+                                        New Notebook
+                                    </motion.button>
+                                    {sortedNotebooks.map((notebook, index) => (
                                         <motion.div
                                             key={notebook.id}
                                             custom={index}
@@ -235,7 +262,7 @@ export function Sidebar({
                                             onClick={() => handleNotebookClick(notebook.id)}
                                             role="button"
                                             tabIndex={0}
-                                            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all cursor-pointer"
+                                            className="group/notebook w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-sm transition-all cursor-pointer"
                                             style={{
                                                 background: selectedNotebookId === notebook.id
                                                     ? 'var(--sidebar-selection-bg)'
@@ -271,44 +298,64 @@ export function Sidebar({
                                                     />
                                                 </div>
                                                 <span className="truncate">{notebook.name}</span>
-                                                {notebook.isDefault && (
+                                                {/* 4-point star icon for pinned notebooks - theme aware */}
+                                                {notebook.isPinned && (
                                                     <span
-                                                        className="px-1.5 py-0.5 text-[10px] font-medium rounded"
+                                                        className="shrink-0 ml-1 transition-all duration-300"
                                                         style={{
-                                                            background: 'var(--border-primary)',
-                                                            color: 'var(--text-muted)'
+                                                            color: 'var(--accent-primary)',
+                                                            filter: 'drop-shadow(0 0 3px var(--accent-glow))'
                                                         }}
                                                     >
-                                                        Default
+                                                        <svg
+                                                            className="w-3 h-3"
+                                                            viewBox="0 0 24 24"
+                                                            fill="currentColor"
+                                                        >
+                                                            <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
+                                                        </svg>
                                                     </span>
                                                 )}
                                             </div>
-                                            <span
-                                                className="text-xs tabular-nums"
-                                                style={{ color: 'var(--text-muted)' }}
-                                            >
-                                                {notebook.noteCount}
-                                            </span>
+                                            {/* Note count / Pin toggle - smooth transition */}
+                                            <div className="relative flex items-center justify-center min-w-[24px]">
+                                                {/* Note count - fades out on hover */}
+                                                <span
+                                                    className="text-xs tabular-nums transition-all duration-200 ease-out group-hover/notebook:opacity-0 group-hover/notebook:scale-75"
+                                                    style={{ color: 'var(--text-muted)' }}
+                                                >
+                                                    {notebook.noteCount}
+                                                </span>
+                                                {/* Pin button - fades in on hover, positioned absolutely to avoid overlap */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onNotebookPinToggle?.(notebook.id);
+                                                    }}
+                                                    className="absolute inset-0 flex items-center justify-center opacity-0 scale-75 group-hover/notebook:opacity-100 group-hover/notebook:scale-100 transition-all duration-200 ease-out hover:scale-110 active:scale-95"
+                                                    title={notebook.isPinned ? 'Unpin notebook' : 'Pin notebook'}
+                                                    style={{
+                                                        color: notebook.isPinned ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                                    }}
+                                                >
+                                                    <svg
+                                                        className="w-4 h-4 transition-all duration-200"
+                                                        viewBox="0 0 24 24"
+                                                        fill={notebook.isPinned ? 'currentColor' : 'none'}
+                                                        stroke="currentColor"
+                                                        strokeWidth={notebook.isPinned ? 0 : 1.5}
+                                                        style={{
+                                                            filter: notebook.isPinned
+                                                                ? 'drop-shadow(0 0 6px var(--accent-glow))'
+                                                                : 'none'
+                                                        }}
+                                                    >
+                                                        <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </motion.div>
                                     ))}
-
-                                    {/* New Notebook Button */}
-                                    <motion.button
-                                        whileHover={{ x: 2 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={onNewNotebook}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors"
-                                        style={{ color: 'var(--accent-primary)' }}
-                                    >
-                                        <div
-                                            className="w-4 h-4 rounded border-2 border-dashed border-current flex items-center justify-center"
-                                        >
-                                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                        </div>
-                                        New Notebook
-                                    </motion.button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -438,140 +485,152 @@ export function Sidebar({
                     </div>
                 </div>
 
-                {/* Add to Home Screen Button */}
-                <div className="px-3 md:px-4 pb-2">
-                    <motion.button
-                        whileHover={{ x: 2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            setIsAddToHomeScreenModalOpen(true);
-                            // onItemClick?.();
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
-                        style={{ color: 'var(--accent-primary)' }}
-                    >
-                        <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{ background: 'var(--surface-shell-hover)' }}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <span className="flex-1 text-left">Add to Home Screen</span>
-                    </motion.button>
-                </div>
-
-                {/* Bottom - Profile & Trash */}
+                {/* Bottom - Settings & Trash */}
                 <div
                     className="p-3 md:p-4 space-y-2"
                     style={{ borderTop: '1px solid var(--border-subtle)' }}
                 >
-
-                    {/* User Profile Menu */}
-                    {!loading && user && (
-                        <div
-                            ref={profileMenuRef}
-                            className="relative mb-2"
+                    {/* Settings Section - Collapsible */}
+                    <div ref={profileMenuRef}>
+                        {/* Settings toggle button */}
+                        <motion.button
+                            whileHover={{ x: 2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                            style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
+                            aria-label="Settings menu"
+                            aria-expanded={isProfileMenuOpen}
                         >
-                            {/* User profile button */}
-                            <motion.button
-                                whileHover={{ x: 2 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
-                                style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
-                                aria-label="User profile menu"
-                                aria-expanded={isProfileMenuOpen}
-                                aria-haspopup="true"
+                            <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                style={{ background: 'var(--surface-shell-hover)' }}
                             >
-                                <div
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                    style={{ background: 'var(--surface-shell-hover)' }}
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                                <span className="flex-1 text-left truncate">{user.email}</span>
-                                <motion.svg
-                                    animate={{ rotate: isProfileMenuOpen ? 180 : 0 }}
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <span className="flex-1 text-left font-medium">Settings</span>
+                            <motion.svg
+                                animate={{ rotate: isProfileMenuOpen ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="w-4 h-4 shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </motion.svg>
+                        </motion.button>
+
+                        {/* Settings Submenu */}
+                        <AnimatePresence>
+                            {isProfileMenuOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className="w-4 h-4 shrink-0"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                                    className="overflow-hidden"
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </motion.svg>
-                            </motion.button>
+                                    <div className="pl-4 pt-1 space-y-1">
+                                        {/* Theme Selector - First item */}
+                                        <ThemeSwitcher />
 
-                            {/* Profile Dropdown Menu */}
-                            <AnimatePresence>
-                                {isProfileMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        transition={{ duration: 0.15 }}
-                                        className="absolute left-0 bottom-full mb-2 w-full rounded-xl overflow-visible z-50"
-                                        style={{
-                                            background: 'var(--surface-shell)',
-                                            border: '1px solid var(--border-primary)',
-                                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.05)',
-                                        }}
-                                    >
-                                        {/* User email display */}
-                                        <div
-                                            className="px-4 py-3 border-b"
-                                            style={{ borderColor: 'var(--border-subtle)' }}
+                                        {/* Add to Home Screen */}
+                                        <motion.button
+                                            whileHover={{ x: 2 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={() => {
+                                                setIsAddToHomeScreenModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors"
+                                            style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.color = 'var(--accent-primary)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.color = 'var(--text-on-shell-secondary, var(--text-secondary))';
+                                            }}
                                         >
-                                            <p
-                                                className="text-xs font-medium truncate"
-                                                style={{ color: 'var(--text-on-shell-secondary, var(--text-muted))' }}
+                                            <div
+                                                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                                style={{ background: 'var(--surface-shell-hover)' }}
                                             >
-                                                Signed in as
-                                            </p>
-                                            <p
-                                                className="text-sm font-semibold truncate mt-0.5"
-                                                style={{ color: 'var(--text-on-shell-secondary, var(--text-muted))' }}
-                                            >
-                                                {user.email}
-                                            </p>
-                                        </div>
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <span className="flex-1 text-left">Add to Home Screen</span>
+                                        </motion.button>
 
-                                        {/* Menu items */}
-                                        <div className="py-1.5">
-
-                                            <button
-                                                onClick={handleReportIssue}
-                                                className="w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                                                style={{ color: 'var(--text-on-shell, var(--text-primary))' }}
+                                        {/* Report Issue */}
+                                        <motion.button
+                                            whileHover={{ x: 2 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={handleReportIssue}
+                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors"
+                                            style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.color = 'var(--accent-primary)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.color = 'var(--text-on-shell-secondary, var(--text-secondary))';
+                                            }}
+                                        >
+                                            <div
+                                                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                                style={{ background: 'var(--surface-shell-hover)' }}
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-on-shell-secondary, var(--text-muted))' }}>
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <span className="text-sm">Report an issue</span>
-                                            </button>
-                                            <button
-                                                onClick={handleSignOut}
-                                                className="w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                                                style={{ color: 'var(--text-on-shell, var(--text-primary))' }}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-on-shell-secondary, var(--text-muted))' }}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                </svg>
-                                                <span className="text-sm font-medium">Sign out</span>
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
+                                            </div>
+                                            <span className="flex-1 text-left">Report Issue</span>
+                                        </motion.button>
 
-                    {/* Theme Selector */}
-                    <ThemeSwitcher />
+                                        {/* User Account (if logged in) - at the bottom with sign out */}
+                                        {!loading && user && (
+                                            <div
+                                                className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors cursor-default mt-2 pt-2"
+                                                style={{
+                                                    color: 'var(--text-on-shell-secondary, var(--text-secondary))',
+                                                    borderTop: '1px solid var(--border-subtle)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.color = 'var(--accent-primary)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.color = 'var(--text-on-shell-secondary, var(--text-secondary))';
+                                                }}
+                                            >
+                                                <div
+                                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                                    style={{ background: 'var(--surface-shell-hover)' }}
+                                                >
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                </div>
+                                                <span className="flex-1 text-left text-sm truncate">{user.email}</span>
+                                                <button
+                                                    onClick={handleSignOut}
+                                                    className="p-1.5 rounded-lg transition-colors"
+                                                    style={{ color: 'inherit' }}
+                                                    aria-label="Sign out"
+                                                    title="Sign out"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* Trash Button */}
                     <motion.button

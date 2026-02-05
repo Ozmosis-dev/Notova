@@ -72,7 +72,7 @@ interface CreateNotebookData {
 interface UseNotebookActionsReturn {
     createNotebook: (data: CreateNotebookData) => Promise<Notebook | null>;
     updateNotebook: (id: string, data: Partial<CreateNotebookData>) => Promise<Notebook | null>;
-    deleteNotebook: (id: string) => Promise<boolean>;
+    deleteNotebook: (id: string, deleteNotes?: boolean) => Promise<boolean>;
     loading: boolean;
     error: Error | null;
 }
@@ -129,12 +129,16 @@ export function useNotebookActions(userId: string = DEFAULT_USER_ID): UseNoteboo
         }
     }, [userId]);
 
-    const deleteNotebook = useCallback(async (id: string): Promise<boolean> => {
+    const deleteNotebook = useCallback(async (id: string, deleteNotes: boolean = false): Promise<boolean> => {
         try {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`/api/notebooks/${id}?userId=${userId}`, {
+            const url = deleteNotes
+                ? `/api/notebooks/${id}?userId=${userId}&deleteNotes=true`
+                : `/api/notebooks/${id}?userId=${userId}`;
+
+            const response = await fetch(url, {
                 method: 'DELETE',
             });
 
