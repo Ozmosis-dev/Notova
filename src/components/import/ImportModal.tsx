@@ -33,7 +33,7 @@ const MAX_FILES = 5;
 const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
 const MAX_INDIVIDUAL_SIZE = 100 * 1024 * 1024; // 100MB
 
-export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalProps) {
+export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const [files, setFiles] = useState<File[]>([]);
     const [status, setStatus] = useState<ImportStatus>('idle');
     const [progress, setProgress] = useState(0);
