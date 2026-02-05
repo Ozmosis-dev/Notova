@@ -109,25 +109,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [supabase.auth])
 
     const updateTheme = useCallback(async (theme: ThemeKey) => {
-        console.log('[AuthProvider] updateTheme called with:', theme)
-
         if (!isValidTheme(theme)) {
-            console.log('[AuthProvider] Invalid theme, returning early')
             return
         }
 
         // Optimistically update local state and localStorage
-        console.log('[AuthProvider] Setting userTheme state to:', theme)
         setUserTheme(theme)
         try {
             localStorage.setItem(THEME_STORAGE_KEY, theme)
-            console.log('[AuthProvider] localStorage updated to:', theme)
-        } catch (e) {
-            console.error('[AuthProvider] localStorage error:', e)
+        } catch {
+            // localStorage might be blocked
         }
 
         // Persist to server in background
-        console.log('[AuthProvider] About to call PATCH /api/user/theme')
         try {
             const response = await fetch('/api/user/theme', {
                 method: 'PATCH',
@@ -135,17 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify({ theme })
             })
 
-            console.log('[AuthProvider] PATCH response status:', response.status)
-            const data = await response.json()
-            console.log('[AuthProvider] PATCH response body:', data)
-
             if (!response.ok) {
-                console.error('[AuthProvider] Failed to update theme on server:', data)
-            } else {
-                console.log('[AuthProvider] Theme successfully persisted to server')
+                console.error('Failed to update theme on server')
             }
         } catch (error) {
-            console.error('[AuthProvider] Error updating theme:', error)
+            console.error('Error updating theme:', error)
         }
     }, [])
 
