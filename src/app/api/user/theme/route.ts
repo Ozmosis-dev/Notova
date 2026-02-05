@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, ensureDbUser } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
 import { isValidTheme, DEFAULT_THEME } from '@/lib/themes';
 
@@ -18,6 +18,9 @@ export async function GET() {
                 { status: 401 }
             );
         }
+
+        // Ensure user exists in database
+        await ensureDbUser();
 
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
@@ -64,10 +67,13 @@ export async function PATCH(request: NextRequest) {
 
         if (!isValidTheme(theme)) {
             return NextResponse.json(
-                { error: 'Invalid theme value. Must be one of: light, dark, warm, cool' },
+                { error: 'Invalid theme value. Must be one of: light, dark, warm, cool, earth, spring, midnight, autumn' },
                 { status: 400 }
             );
         }
+
+        // Ensure user exists in database before updating
+        await ensureDbUser();
 
         // Update user's theme in database
         const updatedUser = await prisma.user.update({

@@ -316,7 +316,7 @@ export function FloatingToolbar({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Detect keyboard
-    const { keyboardHeight } = useKeyboardDetection();
+    const { keyboardHeight, isKeyboardVisible } = useKeyboardDetection();
 
     // Calculate position
     const position = useFloatingPosition(
@@ -349,20 +349,17 @@ export function FloatingToolbar({
 
         // Check if clicking inside the toolbar itself
         if (toolbarRef.current?.contains(target)) {
-            // Clear and reset the hide timer when interacting with toolbar
-            if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
-            }
-            hideTimeoutRef.current = setTimeout(() => {
-                setVisible(false);
-            }, 5000); // Extended timeout when interacting
+            // Don't update position or start new timers when clicking toolbar itself
             return;
         }
 
         // Only track touches in the editor content area
         const isInEditor = target.closest('.ProseMirror') !== null;
         if (!isInEditor) {
-            // Hide if clicking outside
+            // Hide if clicking outside editor
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+            }
             setVisible(false);
             return;
         }
@@ -379,19 +376,13 @@ export function FloatingToolbar({
             return;
         }
 
-        setTouchPosition({ x: clientX, y: clientY });
-        setVisible(true);
-
-        // Clear any existing hide timeout
-        if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current);
+        // Only update position if toolbar is not already visible
+        // This prevents position "creep" on repeated touches
+        if (!visible) {
+            setTouchPosition({ x: clientX, y: clientY });
+            setVisible(true);
         }
-
-        // Auto-hide after 3 seconds of no interaction
-        hideTimeoutRef.current = setTimeout(() => {
-            setVisible(false);
-        }, 3000);
-    }, []);
+    }, [visible]);
 
     // Handle selection change
     const handleSelectionChange = useCallback(() => {
@@ -399,35 +390,55 @@ export function FloatingToolbar({
         if (!isMobile || !editor) return;
 
         const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
+        if (!selection || selection.rangeCount === 0) {
+            // No selection - but keep toolbar visible if we have focus
+            const editorElement = document.querySelector('.ProseMirror');
+            const hasFocus = editorElement && document.activeElement === editorElement;
+
+            if (!hasFocus && visible) {
+                setVisible(false);
+            }
+            return;
+        }
 
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
         if (rect.width > 0 || rect.height > 0) {
-            // Text is selected - show toolbar near selection
-            setTouchPosition({
-                x: rect.left + rect.width / 2,
-                y: rect.top,
-            });
-            setVisible(true);
+            // Text is selected - update toolbar position to follow selection
+            const newX = rect.left + rect.width / 2;
+            const newY = rect.top;
 
-            // Clear hide timeout
-            if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
+            // Only update if position changed significantly (prevents jitter)
+            if (!touchPosition ||
+                Math.abs(newX - touchPosition.x) > 5 ||
+                Math.abs(newY - touchPosition.y) > 5) {
+                setTouchPosition({ x: newX, y: newY });
+            }
+
+            if (!visible) {
+                setVisible(true);
+            }
+        } else if (visible) {
+            // Cursor position (no selection) - get cursor rect  
+            if (rect.top > 0) {
+                const newX = rect.left;
+                const newY = rect.top;
+
+                if (!touchPosition ||
+                    Math.abs(newX - touchPosition.x) > 10 ||
+                    Math.abs(newY - touchPosition.y) > 10) {
+                    setTouchPosition({ x: newX, y: newY });
+                }
             }
         }
-    }, [editor]);
+    }, [editor, visible, touchPosition]);
 
-    // Handle toolbar interaction to prevent auto-hide
-    const handleToolbarInteraction = useCallback(() => {
-        // Clear and reset the hide timer
-        if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current);
-        }
-        hideTimeoutRef.current = setTimeout(() => {
-            setVisible(false);
-        }, 5000); // Extended timeout when interacting with toolbar
+    // Handle toolbar interaction to prevent premature hiding
+    const handleToolbarInteraction = useCallback((e?: React.MouseEvent | React.TouchEvent) => {
+        // Prevent event from bubbling up to document handlers
+        e?.stopPropagation();
+        e?.preventDefault();
     }, []);
 
     // Handle image upload
@@ -459,6 +470,58 @@ export function FloatingToolbar({
             fileInputRef.current.value = '';
         }
     }, [editor]);
+
+    // Hide toolbar when keyboard closes
+    useEffect(() => {
+        if (!isKeyboardVisible && visible) {
+            // Check if editor still has focus before hiding
+            const editorElement = document.querySelector('.ProseMirror');
+            const hasFocus = editorElement && document.activeElement === editorElement;
+
+            // Only hide if editor doesn't have focus
+            if (!hasFocus) {
+                setVisible(false);
+                if (hideTimeoutRef.current) {
+                    clearTimeout(hideTimeoutRef.current);
+                }
+            }
+        }
+    }, [isKeyboardVisible, visible]);
+
+    // Keep toolbar visible and positioned during active editing
+    useEffect(() => {
+        const isMobile = window.innerWidth < 768;
+        if (!isMobile || !editor || disabled) return;
+
+        // Handle input event to update cursor position while typing
+        const handleInput = () => {
+            if (!visible) return;
+
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            if (rect.top > 0) {
+                const newX = rect.left;
+                const newY = rect.top;
+
+                // Update position to follow cursor while typing
+                if (Math.abs(newX - (touchPosition?.x || 0)) > 10 ||
+                    Math.abs(newY - (touchPosition?.y || 0)) > 10) {
+                    setTouchPosition({ x: newX, y: newY });
+                }
+            }
+        };
+
+        const editorElement = editor.view.dom;
+        editorElement.addEventListener('input', handleInput);
+
+        return () => {
+            editorElement.removeEventListener('input', handleInput);
+        };
+    }, [editor, visible, touchPosition, disabled]);
 
     // Set up event listeners
     useEffect(() => {
@@ -508,6 +571,7 @@ export function FloatingToolbar({
                         }}
                         onMouseDown={handleToolbarInteraction}
                         onTouchStart={handleToolbarInteraction}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <div
                             className="floating-toolbar-container flex items-center gap-1 px-2 py-1.5 rounded-xl overflow-x-auto scrollbar-hide max-w-[90vw]"

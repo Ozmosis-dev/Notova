@@ -80,8 +80,17 @@ export function useFloatingPosition(
         }
 
         // Final safety check - ensure toolbar is always visible
-        x = Math.max(PADDING, Math.min(x, viewportWidth - toolbarWidth - PADDING));
-        y = Math.max(PADDING, Math.min(y, availableHeight - toolbarHeight - PADDING));
+        // Clamp values to prevent NaN or extreme positions
+        const safeViewportWidth = Math.max(viewportWidth, 320); // Minimum mobile width
+        const safeAvailableHeight = Math.max(availableHeight, 200); // Minimum available space
+
+        x = Math.max(PADDING, Math.min(x, safeViewportWidth - toolbarWidth - PADDING));
+        y = Math.max(PADDING, Math.min(y, safeAvailableHeight - toolbarHeight - PADDING));
+
+        // Ensure no NaN values
+        if (isNaN(x) || isNaN(y)) {
+            return null;
+        }
 
         return {
             x: Math.round(x),

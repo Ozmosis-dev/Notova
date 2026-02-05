@@ -66,13 +66,19 @@ export function useKeyboardDetection() {
         };
 
         const handleBlur = () => {
-            // Delay to allow keyboard to fully dismiss
+            // Immediately mark keyboard as hidden
+            setKeyboardState({
+                isKeyboardVisible: false,
+                keyboardHeight: 0,
+            });
+
+            // Double-check after a brief delay to ensure accuracy
             setTimeout(() => {
                 setKeyboardState({
                     isKeyboardVisible: false,
                     keyboardHeight: 0,
                 });
-            }, 300);
+            }, 100);
         };
 
         // Event listeners
