@@ -7,7 +7,9 @@ import { OpenMoji } from '../ui/OpenMoji';
 import { ColorPickerPopup, getCardColorStyle, type CardColorKey } from './ColorPickerPopup';
 import { AISearchInsightsButton } from '../ai/AISearchInsightsButton';
 import { SmartTagModal } from '../ai/SmartTagModal';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { BulkActionsToolbar } from './BulkActionsToolbar';
+import { MoveToFolderModal } from './MoveToFolderModal';
+import { Sparkles, Loader2, CheckSquare, Square, X } from 'lucide-react';
 
 // Filter chip options
 const filterOptions = [
@@ -34,6 +36,13 @@ interface Tag {
     id: string;
     name: string;
     noteCount: number;
+}
+
+interface Notebook {
+    id: string;
+    name: string;
+    icon?: string | null;
+    noteCount?: number;
 }
 
 interface NotesListProps {
@@ -75,6 +84,11 @@ interface NotesListProps {
     isDefaultNotebook?: boolean;
     notebookCount?: number;
     onNotebookDelete?: (notebookId: string, deleteNotes?: boolean) => void;
+    // Bulk Actions props
+    notebooks?: Notebook[]; // For move to folder functionality
+    onMoveNotes?: (noteIds: string[], notebookId: string) => Promise<void>;
+    onBulkDelete?: (noteIds: string[]) => Promise<void>;
+    onBulkSummarize?: (noteIds: string[]) => void;
 }
 
 function formatRelativeDate(date: Date | string): string {
@@ -152,6 +166,11 @@ export function NotesList({
     isDefaultNotebook,
     notebookCount,
     onNotebookDelete,
+    // Bulk Actions props
+    notebooks = [],
+    onMoveNotes,
+    onBulkDelete,
+    onBulkSummarize,
 }: NotesListProps) {
     const [activeFilter, setActiveFilter] = useState('all');
     const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
@@ -159,6 +178,13 @@ export function NotesList({
     const [isCreatingNote, setIsCreatingNote] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteNotesToo, setDeleteNotesToo] = useState(false);
+
+    // Selection mode state
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [isMovingNotes, setIsMovingNotes] = useState(false);
+    const [isDeletingNotes, setIsDeletingNotes] = useState(false);
 
     // Use notebookCount if available for delete modal, otherwise fallback to visible notes length
     // (though notebookCount is preferred for safety)
@@ -210,6 +236,67 @@ export function NotesList({
         // 'all' or 'favorites' - return original order (or filtered)
         return notesCopy;
     }, [notes, activeFilter, selectedTagId]);
+
+    // Selection mode handlers
+    const toggleNoteSelection = (noteId: string) => {
+        setSelectedNoteIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(noteId)) {
+                newSet.delete(noteId);
+            } else {
+                newSet.add(noteId);
+            }
+            return newSet;
+        });
+    };
+
+    const selectAllNotes = () => {
+        setSelectedNoteIds(new Set(sortedNotes.map(note => note.id)));
+    };
+
+    const deselectAllNotes = () => {
+        setSelectedNoteIds(new Set());
+    };
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedNoteIds(new Set());
+    };
+
+    const handleMoveNotes = async (targetNotebookId: string) => {
+        if (!onMoveNotes || selectedNoteIds.size === 0) return;
+
+        setIsMovingNotes(true);
+        try {
+            await onMoveNotes(Array.from(selectedNoteIds), targetNotebookId);
+            setShowMoveModal(false);
+            exitSelectionMode();
+        } catch (error) {
+            console.error('Failed to move notes:', error);
+        } finally {
+            setIsMovingNotes(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!onBulkDelete || selectedNoteIds.size === 0) return;
+
+        setIsDeletingNotes(true);
+        try {
+            await onBulkDelete(Array.from(selectedNoteIds));
+            exitSelectionMode();
+        } catch (error) {
+            console.error('Failed to delete notes:', error);
+        } finally {
+            setIsDeletingNotes(false);
+        }
+    };
+
+    const handleBulkSummarize = () => {
+        if (!onBulkSummarize || selectedNoteIds.size === 0) return;
+        onBulkSummarize(Array.from(selectedNoteIds));
+        exitSelectionMode();
+    };
 
     return (
         <div
@@ -316,6 +403,33 @@ export function NotesList({
                                 </svg>
                             </motion.button>
                         )}
+                        {/* Select toggle button */}
+                        {notes.length > 0 && (
+                            <motion.button
+                                whileHover={{ scale: 1.02, y: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setSelectionMode(!selectionMode)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all shrink-0"
+                                style={{
+                                    background: selectionMode
+                                        ? 'var(--accent-primary)'
+                                        : 'var(--surface-content-secondary)',
+                                    color: selectionMode
+                                        ? 'var(--text-on-accent)'
+                                        : 'var(--text-primary)',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    border: '1px solid var(--border-subtle)',
+                                }}
+                                title={selectionMode ? "Exit selection mode" : "Select notes"}
+                            >
+                                {selectionMode ? (
+                                    <X size={14} />
+                                ) : (
+                                    <CheckSquare size={14} />
+                                )}
+                                <span className="hidden sm:inline">{selectionMode ? 'Cancel' : 'Select'}</span>
+                            </motion.button>
+                        )}
                     </div>
                 ) : (
                     /* Regular notes header with optional AI insights button */
@@ -338,14 +452,43 @@ export function NotesList({
                                 ({notes.length})
                             </span>
                         </h2>
-                        {/* AI Search Insights button - shown when search has 2+ results */}
-                        {searchQuery && notes.length >= 2 && onGenerateSearchInsights && (
-                            <AISearchInsightsButton
-                                onClick={onGenerateSearchInsights}
-                                isLoading={isGeneratingInsights}
-                                matchCount={notes.length}
-                            />
-                        )}
+                        <div className="flex items-center gap-2">
+                            {/* AI Search Insights button - shown when search has 2+ results */}
+                            {searchQuery && notes.length >= 2 && onGenerateSearchInsights && (
+                                <AISearchInsightsButton
+                                    onClick={onGenerateSearchInsights}
+                                    isLoading={isGeneratingInsights}
+                                    matchCount={notes.length}
+                                />
+                            )}
+                            {/* Select toggle button */}
+                            {notes.length > 0 && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02, y: -1 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setSelectionMode(!selectionMode)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all shrink-0"
+                                    style={{
+                                        background: selectionMode
+                                            ? 'var(--accent-primary)'
+                                            : 'var(--surface-content-secondary)',
+                                        color: selectionMode
+                                            ? 'var(--text-on-accent)'
+                                            : 'var(--text-primary)',
+                                        boxShadow: 'var(--shadow-sm)',
+                                        border: '1px solid var(--border-subtle)',
+                                    }}
+                                    title={selectionMode ? "Exit selection mode" : "Select notes"}
+                                >
+                                    {selectionMode ? (
+                                        <X size={14} />
+                                    ) : (
+                                        <CheckSquare size={14} />
+                                    )}
+                                    <span className="hidden sm:inline">{selectionMode ? 'Cancel' : 'Select'}</span>
+                                </motion.button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -424,7 +567,7 @@ export function NotesList({
 
             {/* Tags Sub-Row - Expandable when tags filter is active */}
             <AnimatePresence>
-                {activeFilter === 'tags' && allTags.length > 0 && (
+                {activeFilter === 'tags' && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -513,6 +656,23 @@ export function NotesList({
                                     </motion.button>
                                 );
                             })}
+                            {/* Empty state message when no tags exist */}
+                            {allTags.length === 0 && !onGenerateSmartTags && (
+                                <span
+                                    className="text-xs italic px-2"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    No tags yet
+                                </span>
+                            )}
+                            {allTags.length === 0 && onGenerateSmartTags && notes.length < 2 && (
+                                <span
+                                    className="text-xs italic px-2"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    Add more notes to use Smart Tags
+                                </span>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -586,6 +746,7 @@ export function NotesList({
                                         : 'var(--text-on-accent)';
                                 const isSelected = selectedNoteId === note.id;
                                 const isColorPickerOpen = colorPickerNoteId === note.id;
+                                const isChecked = selectedNoteIds.has(note.id);
 
                                 return (
                                     <motion.div
@@ -597,6 +758,38 @@ export function NotesList({
                                         exit={{ opacity: 0, scale: 0.9, y: 10 }}
                                         className="relative"
                                     >
+                                        {/* Selection checkbox overlay */}
+                                        {selectionMode && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                className="absolute top-2 left-2 z-20"
+                                            >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleNoteSelection(note.id);
+                                                    }}
+                                                    className="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                                                    style={{
+                                                        background: isChecked
+                                                            ? 'var(--accent-primary)'
+                                                            : 'rgba(255, 255, 255, 0.9)',
+                                                        border: isChecked
+                                                            ? '2px solid var(--accent-primary)'
+                                                            : '2px solid var(--border-primary)',
+                                                        boxShadow: 'var(--shadow-md)',
+                                                    }}
+                                                >
+                                                    {isChecked ? (
+                                                        <CheckSquare size={14} style={{ color: 'var(--text-on-accent)' }} />
+                                                    ) : (
+                                                        <Square size={14} style={{ color: 'var(--text-muted)' }} />
+                                                    )}
+                                                </button>
+                                            </motion.div>
+                                        )}
                                         <motion.button
                                             whileHover={{
                                                 y: -4,
@@ -604,16 +797,25 @@ export function NotesList({
                                                 transition: { duration: 0.2 }
                                             }}
                                             whileTap={{ scale: 0.98 }}
-                                            onClick={() => onNoteSelect?.(note.id)}
+                                            onClick={() => {
+                                                if (selectionMode) {
+                                                    toggleNoteSelection(note.id);
+                                                } else {
+                                                    onNoteSelect?.(note.id);
+                                                }
+                                            }}
                                             className="w-full text-left p-4 rounded-2xl transition-all relative group"
                                             style={{
                                                 background: bgColor,
                                                 color: textColor,
-                                                boxShadow: isSelected
-                                                    ? 'var(--shadow-xl), 0 0 0 3px var(--selection-ring)'
-                                                    : 'var(--shadow-md)',
+                                                boxShadow: isChecked
+                                                    ? 'var(--shadow-xl), 0 0 0 3px var(--accent-primary)'
+                                                    : isSelected
+                                                        ? 'var(--shadow-xl), 0 0 0 3px var(--selection-ring)'
+                                                        : 'var(--shadow-md)',
                                                 minHeight: '140px',
-                                                overflow: 'hidden'
+                                                overflow: 'hidden',
+                                                paddingLeft: selectionMode ? '40px' : '16px',
                                             }}
                                         >
                                             {/* Favorite sparkle indicator - top right corner */}
@@ -1014,6 +1216,31 @@ export function NotesList({
                 applying={isApplyingSmartTags}
                 error={smartTagsError}
                 noteCount={smartTagsNoteCount}
+            />
+
+            {/* Bulk Actions Toolbar */}
+            <BulkActionsToolbar
+                selectedCount={selectedNoteIds.size}
+                totalCount={sortedNotes.length}
+                onSelectAll={selectAllNotes}
+                onDeselectAll={deselectAllNotes}
+                onMove={() => setShowMoveModal(true)}
+                onDelete={handleBulkDelete}
+                onSummarize={onBulkSummarize ? handleBulkSummarize : undefined}
+                onClose={exitSelectionMode}
+                isMoving={isMovingNotes}
+                isDeleting={isDeletingNotes}
+            />
+
+            {/* Move to Folder Modal */}
+            <MoveToFolderModal
+                isOpen={showMoveModal}
+                onClose={() => setShowMoveModal(false)}
+                notebooks={notebooks || []}
+                currentNotebookId={notebookId}
+                onMove={handleMoveNotes}
+                noteCount={selectedNoteIds.size}
+                isMoving={isMovingNotes}
             />
         </div >
     );

@@ -1,20 +1,158 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, Variants, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { ThemeKey } from '@/lib/themes'
+
+// Animation variants for staggered reveals and micro-interactions
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.08,
+            delayChildren: 0.1
+        }
+    }
+}
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: "spring",
+            stiffness: 100,
+            damping: 12
+        }
+    }
+}
+
+const slideInLeftVariants: Variants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: {
+            type: "spring",
+            stiffness: 80,
+            damping: 15
+        }
+    }
+}
+
+const slideInRightVariants: Variants = {
+    hidden: { opacity: 0, x: 30 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: {
+            type: "spring",
+            stiffness: 80,
+            damping: 15
+        }
+    }
+}
+
+const scaleInVariants: Variants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        transition: {
+            type: "spring",
+            stiffness: 100,
+            damping: 15
+        }
+    }
+}
+
+const featureBadgeVariants: Variants = {
+    hidden: { opacity: 0, y: 15, scale: 0.95 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+            type: "spring",
+            stiffness: 120,
+            damping: 14
+        }
+    }
+}
+
+// Hover interaction variants
+const buttonHoverVariants = {
+    rest: { scale: 1 },
+    hover: {
+        scale: 1.02,
+        transition: { type: "spring" as const, stiffness: 400, damping: 17 }
+    },
+    tap: { scale: 0.98 }
+}
+
+const cardHoverVariants = {
+    rest: { y: 0, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" },
+    hover: {
+        y: -4,
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15)",
+        transition: { type: "spring" as const, stiffness: 300, damping: 20 }
+    }
+}
+
+const iconHoverVariants = {
+    rest: { rotate: 0, scale: 1 },
+    hover: {
+        rotate: [0, -10, 10, -5, 0],
+        scale: 1.1,
+        transition: { duration: 0.5 }
+    }
+}
+
+// Floating animation variants for parallax depth effect
+const floatingSlowVariants = {
+    animate: {
+        y: [0, -8, 0],
+        transition: {
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut" as const
+        }
+    }
+}
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const router = useRouter()
     const supabase = createClient()
+    const { theme, setTheme } = useTheme()
+
+    // Scroll-based parallax for dimensional hero effect
+    const { scrollY } = useScroll()
+    const heroTextY = useTransform(scrollY, [0, 300], [0, 30])
+    const heroCardY = useTransform(scrollY, [0, 300], [0, -20])
+    const heroBadgeY = useTransform(scrollY, [0, 300], [0, 50])
+
+    // Set warm theme as default for login page on first visit
+    useEffect(() => {
+        setMounted(true)
+        // Only set default if no theme has been explicitly chosen
+        const storedTheme = localStorage.getItem('theme')
+        if (!storedTheme || storedTheme === 'system') {
+            setTheme('warm')
+        }
+    }, [setTheme])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -42,21 +180,14 @@ export default function LoginPage() {
         }
     }
 
+    // Handle theme selection from carousel
+    const handleThemeSelect = (themeName: string) => {
+        const themeKey = themeName.toLowerCase() as ThemeKey
+        setTheme(themeKey)
+    }
+
     return (
-        <div className="min-h-screen relative overflow-hidden text-primary" style={{
-            background: 'var(--surface-shell)',
-            color: '#1A1A1A', // Explicitly force text color
-            // Force light theme warm editorial palette for the landing page regardless of system preference
-            // @ts-ignore
-            '--surface-shell': '#FAF6EE',
-            '--surface-content': '#fff5e6', // CRITICAL: Ultra-soft cream, specific user request
-            '--text-primary': '#1A1A1A',
-            '--text-secondary': '#7A7168',
-            '--accent-primary': '#E8783A',
-            '--accent-secondary': '#E89A4A',
-            '--border-primary': '#E8E0D0',
-            '--highlight-soft': 'rgba(242, 212, 102, 0.3)'
-        } as React.CSSProperties}>
+        <div className="min-h-screen relative overflow-hidden surface-shell text-primary">
 
             {/* Background Decoration */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
@@ -109,23 +240,34 @@ export default function LoginPage() {
             {/* Hero Section */}
             <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-24 lg:pt-20 lg:pb-32 grid lg:grid-cols-2 gap-16 items-center">
 
-                {/* Left Column: Copy */}
+                {/* Left Column: Copy - Staggered reveal with slide-in + parallax */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    style={{ y: heroTextY }}
                     className="space-y-8"
                 >
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-md shadow-orange-500/10"
+                    {/* Badge with slide + fade */}
+                    <motion.div
+                        variants={slideInLeftVariants}
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-md shadow-orange-500/10 cursor-default"
+                        whileHover={{ scale: 1.05, boxShadow: "0 8px 25px -5px rgba(232, 120, 58, 0.3)" }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         style={{
                             background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
                             color: '#FFFFFF'
                         }}>
-                        <Sparkles size={12} />
+                        <motion.div
+                            animate={{ rotate: [0, 15, -15, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                        >
+                            <Sparkles size={12} />
+                        </motion.div>
                         <span>Best note taking app of 2026</span>
-                    </div>
+                    </motion.div>
 
-                    <div className="relative">
+                    <motion.div variants={itemVariants} className="relative">
                         <h1 className="text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight">
                             Capture your
                             <br />
@@ -159,14 +301,20 @@ export default function LoginPage() {
                             </span>
                         </h1>
 
-                        {/* Floating Badge */}
+                        {/* Floating Badge with parallax and ambient float */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0, rotate: -15 }}
                             animate={{ opacity: 1, scale: 1, rotate: 15 }}
                             transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.8 }}
-                            className="absolute -top-12 -right-8 md:-right-16 z-20 hidden md:block"
+                            whileHover={{ scale: 1.1, rotate: 20 }}
+                            style={{ y: heroBadgeY }}
+                            className="absolute -top-12 -right-8 md:-right-16 z-20 hidden md:block cursor-pointer"
                         >
-                            <div className="relative w-28 h-28 lg:w-32 lg:h-32 flex items-center justify-center">
+                            <motion.div
+                                className="relative w-28 h-28 lg:w-32 lg:h-32 flex items-center justify-center"
+                                variants={floatingSlowVariants}
+                                animate="animate"
+                            >
                                 {/* Image Starburst Badge */}
                                 <motion.div
                                     className="absolute inset-0"
@@ -193,44 +341,68 @@ export default function LoginPage() {
                                         <span>in 2026</span>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </div>
+                    </motion.div>
 
-                    <p className="text-xl text-[#7A7168] max-w-lg leading-relaxed">
+                    <motion.p
+                        variants={itemVariants}
+                        className="text-xl max-w-lg leading-relaxed"
+                        style={{ color: 'var(--text-on-shell)', opacity: 0.85 }}
+                    >
                         A modern, intelligent workspace that helps you organize your thoughts, projects, and life with unmatched elegance and simplicity.
-                    </p>
+                    </motion.p>
 
-                    <div className="flex flex-wrap gap-4 pt-4">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <FileText size={16} className="text-(--accent-primary)" />
-                            <span>.enex Import</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <Brain size={16} className="text-(--accent-primary)" />
-                            <span>AI Summaries</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <Wifi size={16} className="text-(--accent-primary)" />
-                            <span>Seamless Sync</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <Search size={16} className="text-(--accent-primary)" />
-                            <span>Smart Search</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <Tag size={16} className="text-(--accent-primary)" />
-                            <span>Tag & Filter</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 border border-white/60 shadow-sm text-sm font-medium text-secondary">
-                            <Palette size={16} className="text-(--accent-primary)" />
-                            <span>Custom Themes</span>
-                        </div>
-                    </div>
+                    {/* Feature badges with staggered reveal and hover micro-interactions */}
+                    <motion.div
+                        variants={containerVariants}
+                        className="flex flex-wrap gap-3 pt-4"
+                    >
+                        {[
+                            { icon: FileText, label: '.enex Import' },
+                            { icon: Brain, label: 'AI Summaries' },
+                            { icon: Wifi, label: 'Seamless Sync' },
+                            { icon: Search, label: 'Smart Search' },
+                            { icon: Tag, label: 'Tag & Filter' },
+                            { icon: Palette, label: 'Custom Themes' },
+                        ].map((feature, index) => (
+                            <motion.div
+                                key={index}
+                                variants={featureBadgeVariants}
+                                whileHover={{
+                                    scale: 1.08,
+                                    y: -2,
+                                    boxShadow: "0 8px 20px -4px rgba(0, 0, 0, 0.15)",
+                                    transition: { type: "spring", stiffness: 400, damping: 17 }
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm cursor-default select-none"
+                                style={{
+                                    background: 'color-mix(in srgb, var(--surface-content) 70%, transparent)',
+                                    border: '1px solid color-mix(in srgb, var(--border-primary) 50%, transparent)',
+                                    color: 'var(--text-secondary)'
+                                }}
+                            >
+                                <motion.div
+                                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.2 }}
+                                    transition={{ duration: 0.4 }}
+                                >
+                                    <feature.icon size={16} style={{ color: 'var(--accent-primary)' }} />
+                                </motion.div>
+                                <span>{feature.label}</span>
+                            </motion.div>
+                        ))}
+                    </motion.div>
                 </motion.div>
 
-                {/* Right Column: Login Card & Mockup */}
-                <div className="relative">
+                {/* Right Column: Login Card & Mockup - Slide in from right + parallax */}
+                <motion.div
+                    className="relative"
+                    variants={slideInRightVariants}
+                    initial="hidden"
+                    animate="visible"
+                    style={{ y: heroCardY }}
+                >
                     {/* Floating Mockup Behind */}
 
 
@@ -248,11 +420,13 @@ export default function LoginPage() {
                             aria-hidden="true"
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5, delay: 0.4 }}
+                            variants={scaleInVariants}
                             id="login-card"
                             className="relative z-10 glass-warm rounded-3xl p-8 shadow-warm-lg border border-black/5 backdrop-blur-xl max-w-md mx-auto lg:ml-auto"
+                            whileHover={{
+                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                                transition: { duration: 0.3 }
+                            }}
                         >
                             {/* Mobile Badge - Overlapping Top Right */}
                             <motion.div
@@ -285,8 +459,8 @@ export default function LoginPage() {
                                 </div>
                             </motion.div>
                             <div className="mb-8 text-left md:text-center">
-                                <h2 className="text-2xl font-bold mb-2">Welcome to Notova</h2>
-                                <p className="text-secondary text-sm">Enter your credentials to access your workspace</p>
+                                <h2 className="text-2xl font-bold mb-2" style={{ color: '#1A1A1A' }}>Welcome to Notova</h2>
+                                <p className="text-sm" style={{ color: '#5A534B' }}>Enter your credentials to access your workspace</p>
                             </div>
 
                             <form onSubmit={handleLogin} className="space-y-5">
@@ -299,64 +473,114 @@ export default function LoginPage() {
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Email</label>
+                                        <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 ml-1" style={{ color: '#6B635B' }}>Email</label>
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="you@example.com"
-                                            className="w-full px-4 py-3.5 rounded-xl bg-[#fff5e6] border border-[#E8E0D0]/30 focus:bg-[#FFFDF8] focus:border-[#E8E0D0]/50 focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base font-sans shadow-none"
+                                            className="w-full px-4 py-3.5 rounded-xl border transition-all text-base font-sans shadow-none focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none"
                                             style={{
                                                 outline: 'none',
                                                 boxShadow: 'none',
-                                                backgroundColor: '#fff5e6',
-                                                color: '#1A1A1A',
+                                                backgroundColor: '#F7F3ED',
+                                                color: '#3A3530',
+                                                borderColor: '#E5DDD0',
                                                 fontFamily: 'var(--font-lufga), system-ui, -apple-system, sans-serif',
-                                                WebkitBoxShadow: '0 0 0 30px #fff5e6 inset',
-                                                WebkitTextFillColor: '#1A1A1A'
-                                            } as React.CSSProperties}
+                                            }}
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold uppercase tracking-wider text-secondary mb-1.5 ml-1">Password</label>
+                                        <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 ml-1" style={{ color: '#6B635B' }}>Password</label>
                                         <input
                                             type="password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="••••••••"
-                                            className="w-full px-4 py-3.5 rounded-xl bg-[#fff5e6] border border-[#E8E0D0]/30 focus:bg-[#FFFDF8] focus:border-[#E8E0D0]/50 focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none transition-all text-base font-sans shadow-none"
+                                            className="w-full px-4 py-3.5 rounded-xl border transition-all text-base font-sans shadow-none focus:ring-0 !outline-none focus:outline-none focus-visible:outline-none focus-visible:!outline-none focus-visible:ring-0 focus-visible:shadow-none"
                                             style={{
                                                 outline: 'none',
                                                 boxShadow: 'none',
-                                                backgroundColor: '#fff5e6',
-                                                color: '#1A1A1A',
+                                                backgroundColor: '#F7F3ED',
+                                                color: '#3A3530',
+                                                borderColor: '#E5DDD0',
                                                 fontFamily: 'var(--font-lufga), system-ui, -apple-system, sans-serif',
-                                                WebkitBoxShadow: '0 0 0 30px #fff5e6 inset',
-                                                WebkitTextFillColor: '#1A1A1A'
-                                            } as React.CSSProperties}
+                                            }}
                                             required
                                         />
                                     </div>
                                 </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full py-4 rounded-xl font-bold text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-                                    style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
-                                >
-                                    {loading ? 'Signing in...' : 'Sign In'}
-                                    {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
-                                </button>
+                                {/* Sign In Button with Glow Effect */}
+                                <div className="relative group/btn">
+                                    {/* Animated Glow Background */}
+                                    <motion.div
+                                        className="absolute -inset-1 rounded-xl opacity-0 group-hover/btn:opacity-100 blur-xl transition-opacity duration-500"
+                                        style={{
+                                            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                                        }}
+                                        animate={{
+                                            scale: [1, 1.02, 1],
+                                            opacity: [0.4, 0.6, 0.4],
+                                        }}
+                                        transition={{
+                                            duration: 2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut"
+                                        }}
+                                    />
+                                    <motion.button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="relative w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 overflow-hidden"
+                                        style={{
+                                            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                                            boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--accent-primary) 20%, transparent)'
+                                        }}
+                                        variants={buttonHoverVariants}
+                                        initial="rest"
+                                        whileHover="hover"
+                                        whileTap="tap"
+                                    >
+                                        {loading ? 'Signing in...' : 'Sign In'}
+                                        {!loading && (
+                                            <motion.span
+                                                animate={{ x: 0 }}
+                                                whileHover={{ x: 4 }}
+                                                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                            >
+                                                <ArrowRight size={18} />
+                                            </motion.span>
+                                        )}
+                                    </motion.button>
+                                </div>
                             </form>
 
-                            <div className="mt-6 text-center text-sm text-secondary">
-                                Don't have an account? <Link href="/signup" className="font-bold underline decoration-2 decoration-(--accent-primary) hover:text-primary transition-colors">Join Notova</Link>
-                            </div>
+                            <motion.div
+                                className="mt-6 text-center text-sm"
+                                style={{ color: '#5A534B' }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.8 }}
+                            >
+                                Don't have an account?{' '}
+                                <Link
+                                    href="/signup"
+                                    className="font-bold underline decoration-2 hover:opacity-80 transition-opacity relative group"
+                                    style={{ color: 'var(--accent-primary)', textDecorationColor: 'var(--accent-primary)' }}
+                                >
+                                    <span className="relative z-10">Join Notova</span>
+                                    <motion.span
+                                        className="absolute inset-0 -m-1 rounded bg-[var(--accent-primary)]/10 z-0"
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        whileHover={{ scale: 1, opacity: 1 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                    />
+                                </Link>
+                            </motion.div>
                         </motion.div>
                     </div>
-                </div>
+                </motion.div>
             </main>
 
             {/* Features Preview Strip */}
@@ -375,7 +599,7 @@ export default function LoginPage() {
 
                     <div className="flex">
                         <motion.div
-                            className="flex gap-8 items-center pl-8"
+                            className="flex gap-4 items-center pl-4"
                             animate={{ x: ["0%", "-50%"] }}
                             transition={{
                                 duration: 40,
@@ -411,34 +635,54 @@ export default function LoginPage() {
                                 { name: 'Spring', bg: '#FFE5EC', accent: '#FF8FAB', text: '#881337' },
                                 { name: 'Midnight', bg: '#1A0F2E', accent: '#A78BFA', text: '#C4B5FD', border: true },
                                 { name: 'Autumn', bg: '#6B2D2D', accent: '#D84315', text: '#FFF5F0' },
-                            ].map((theme, i) => (
-                                <div key={i} className="flex flex-col gap-3 group shrink-0 w-64 cursor-default">
+                            ].map((themeOption, i) => {
+                                const isActive = mounted && theme === themeOption.name.toLowerCase()
+                                return (
                                     <div
-                                        className={`w-full aspect-video rounded-xl shadow-2xl shadow-black/40 relative overflow-hidden transition-all duration-500 group-hover:scale-[1.03] group-hover:shadow-black/60 ${theme.border ? 'border border-white/10' : ''}`}
-                                        style={{ background: theme.bg }}
+                                        key={i}
+                                        className="flex flex-col gap-2 group shrink-0 w-44 cursor-pointer"
+                                        onClick={() => handleThemeSelect(themeOption.name)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleThemeSelect(themeOption.name)}
                                     >
-                                        {/* Abstract UI Representation */}
-                                        <div className="absolute left-0 top-0 bottom-0 w-16 bg-black/5 backdrop-blur-[1px]" />
-                                        <div className="absolute top-4 left-0 right-0 h-px bg-black/5" />
+                                        <div
+                                            className={`w-full aspect-[4/3] rounded-lg shadow-xl shadow-black/30 relative overflow-hidden transition-all duration-500 group-hover:scale-[1.03] group-hover:shadow-black/50 ${themeOption.border ? 'border border-white/10' : ''} ${isActive ? 'ring-2 ring-offset-2 ring-offset-[#1A1A1A] ring-white/60 scale-[1.03]' : ''}`}
+                                            style={{ background: themeOption.bg }}
+                                        >
+                                            {/* Abstract UI Representation */}
+                                            <div className="absolute left-0 top-0 bottom-0 w-10 bg-black/5 backdrop-blur-[1px]" />
+                                            <div className="absolute top-3 left-0 right-0 h-px bg-black/5" />
 
-                                        {/* Floating Active Element */}
-                                        <div className="absolute right-3 bottom-3 w-8 h-8 rounded-lg flex items-center justify-center shadow-md transform group-hover:-translate-y-1 transition-transform duration-500"
-                                            style={{ background: theme.accent }}>
-                                            <div className="w-3 h-3 rounded-sm bg-white/40" />
+                                            {/* Floating Active Element */}
+                                            <div className="absolute right-2 bottom-2 w-5 h-5 rounded-md flex items-center justify-center shadow-md transform group-hover:-translate-y-0.5 transition-transform duration-500"
+                                                style={{ background: themeOption.accent }}>
+                                                <div className="w-2 h-2 rounded-sm bg-white/40" />
+                                            </div>
+
+                                            {/* Skeleton Text */}
+                                            <div className="absolute left-12 top-4 w-14 h-1 rounded-full opacity-10" style={{ background: themeOption.text }} />
+                                            <div className="absolute left-12 top-6 w-10 h-1 rounded-full opacity-10" style={{ background: themeOption.text }} />
+
+                                            <div className="absolute left-12 top-10 w-20 h-1 rounded-full opacity-5" style={{ background: themeOption.text }} />
+                                            <div className="absolute left-12 top-12 w-14 h-1 rounded-full opacity-5" style={{ background: themeOption.text }} />
+
+                                            {/* Active indicator checkmark */}
+                                            {isActive && (
+                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Skeleton Text */}
-                                        <div className="absolute left-20 top-6 w-24 h-1.5 rounded-full opacity-10" style={{ background: theme.text }} />
-                                        <div className="absolute left-20 top-10 w-16 h-1.5 rounded-full opacity-10" style={{ background: theme.text }} />
-
-                                        <div className="absolute left-20 top-20 w-32 h-1.5 rounded-full opacity-5" style={{ background: theme.text }} />
-                                        <div className="absolute left-20 top-24 w-24 h-1.5 rounded-full opacity-5" style={{ background: theme.text }} />
+                                        <span className={`text-[9px] font-bold text-center tracking-widest uppercase transition-opacity duration-300 ${isActive ? 'text-white opacity-100' : 'text-white/40 opacity-40 group-hover:opacity-100'}`}>
+                                            {themeOption.name}
+                                        </span>
                                     </div>
-                                    <span className="text-white/40 text-[10px] font-bold text-center tracking-widest uppercase opacity-40 group-hover:opacity-100 transition-opacity duration-300">
-                                        {theme.name}
-                                    </span>
-                                </div>
-                            ))}
+                                )
+                            })}
+
                         </motion.div>
                     </div>
                 </div>
@@ -494,52 +738,137 @@ export default function LoginPage() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: feature.delay }}
-                            className="group relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 hover:border-white/10 transition-all duration-500 overflow-hidden hover:shadow-2xl"
+                            className="hover-3d w-full h-full group"
                         >
-                            {/* Hover Glow */}
-                            <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+                            {/* Card Content - First child for hover-3d effect */}
+                            <div
+                                className="relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 group-hover:border-white/10 transition-colors duration-500"
+                            >
+                                {/* Hover Glow */}
+                                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
 
-                            <div className="relative z-10 flex flex-col h-full p-8">
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-linear-to-br ${feature.gradient} shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-500`}>
-                                        <feature.Icon className="text-black/80 drop-shadow-sm" size={20} strokeWidth={2.5} />
+                                <div className="relative z-10 flex flex-col h-full p-8">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div
+                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-linear-to-br ${feature.gradient} shadow-lg shadow-black/20 transition-all duration-500 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-3 group-hover:shadow-xl`}
+                                        >
+                                            <feature.Icon className="text-black/80 drop-shadow-sm transition-transform duration-500 group-hover:scale-110" size={20} strokeWidth={2.5} />
+                                        </div>
+                                    </div>
+
+                                    <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{feature.title}</h3>
+                                    <p className="text-white/50 leading-relaxed mb-8 text-sm font-medium">{feature.desc}</p>
+
+                                    {/* Image Container */}
+                                    <div className="mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-colors">
+                                        <Image
+                                            src={feature.img}
+                                            alt={feature.title}
+                                            fill
+                                            className="object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
+                                        />
+                                        {/* Overlay to ensure text readability if desired, or nice fade */}
+                                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                                     </div>
                                 </div>
-
-                                <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{feature.title}</h3>
-                                <p className="text-white/50 leading-relaxed mb-8 text-sm font-medium">{feature.desc}</p>
-
-                                {/* Image Container */}
-                                <div className="mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-colors">
-                                    <Image
-                                        src={feature.img}
-                                        alt={feature.title}
-                                        fill
-                                        className="object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
-                                    />
-                                    {/* Overlay to ensure text readability if desired, or nice fade */}
-                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                                </div>
                             </div>
+                            {/* 8 empty divs for hover-3d effect zones */}
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
                         </motion.div>
                     ))}
                 </div>
             </div>
 
             {/* Deep Dive / Pain Points Section */}
-            {/* Deep Dive / Pain Points Section */}
-            <section className="relative z-10 bg-[#FAF6EE] py-24 px-6 border-t border-[#E8E0D0]">
+            <section className="relative z-10 bg-[#FAF6EE] py-24 px-6 border-t border-[#E8E0D0] overflow-hidden">
                 <div className="max-w-7xl mx-auto">
-                    <div className="mb-20 max-w-3xl">
-                        <h2 className="text-4xl md:text-6xl font-bold text-[#1A1A1A] mb-6 tracking-tight leading-tight">
-                            Built to fix the <br />
-                            <span className="gradient-text">problems you hate.</span>
-                        </h2>
-                        <p className="text-[#7A7168] text-xl leading-relaxed">
-                            We asked thousands of power users what frustrated them most about existing tools.
-                            Then we built the solutions directly into the core of Notova.
-                        </p>
+                    {/* Header with iPhone Mockup */}
+                    <div className="mb-20 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-12 lg:gap-8">
+                        {/* Left: Text Content */}
+                        <div className="max-w-3xl lg:max-w-xl xl:max-w-2xl">
+                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#1A1A1A] mb-6 tracking-tight leading-tight">
+                                Built to fix the <br />
+                                <span className="gradient-text">problems you hate.</span>
+                            </h2>
+                            <p className="text-[#7A7168] text-lg md:text-xl leading-relaxed">
+                                We asked thousands of power users what frustrated them most about existing tools.
+                                Then we built the solutions directly into the core of Notova.
+                            </p>
+                        </div>
+
+                        {/* Right: iPhone Mockup */}
+                        <motion.div
+                            className="relative hidden md:flex items-center justify-center lg:justify-end flex-shrink-0"
+                            initial={{ opacity: 0, x: 50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                        >
+                            {/* Glow Effect Behind Phone */}
+                            <div
+                                className="absolute inset-0 -m-8 opacity-50 pointer-events-none blur-[60px] rounded-full"
+                                style={{
+                                    background: 'radial-gradient(ellipse at center, var(--accent-primary) 0%, var(--accent-secondary) 30%, transparent 70%)'
+                                }}
+                            />
+
+                            {/* iPhone Mockup */}
+                            <motion.div
+                                className="mockup-phone mockup-phone-lg mockup-phone-glow relative z-10"
+                                animate={{
+                                    y: [0, -10, 0],
+                                    rotate: [6, 8, 6]
+                                }}
+                                transition={{
+                                    duration: 4,
+                                    ease: "easeInOut",
+                                    repeat: Infinity
+                                }}
+                                style={{ transform: 'rotate(6deg)' }}
+                            >
+                                <div className="mockup-phone-camera"></div>
+                                <div className="mockup-phone-display">
+                                    {/* Video playing inside the phone - using img for webp animation */}
+                                    <img
+                                        src="/mockups/dashboard_mobile_demo.webp"
+                                        alt="Notova Dashboard Demo"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            </motion.div>
+
+                            {/* Floating decorative elements */}
+                            <motion.div
+                                className="absolute -top-6 -left-6 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
+                                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
+                                animate={{
+                                    y: [0, -8, 0],
+                                    rotate: [0, 10, 0]
+                                }}
+                                transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+                            >
+                                <Sparkles size={20} className="text-white" />
+                            </motion.div>
+
+                            <motion.div
+                                className="absolute -bottom-4 -right-4 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-[#3B82F6]"
+                                animate={{
+                                    y: [0, 8, 0],
+                                    rotate: [0, -10, 0]
+                                }}
+                                transition={{ duration: 3.5, repeat: Infinity, delay: 1 }}
+                            >
+                                <Zap size={16} className="text-white" />
+                            </motion.div>
+                        </motion.div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto">

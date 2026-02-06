@@ -1038,3 +1038,284 @@ input:-webkit-autofill:active {
     0 4px 12px rgba(232, 120, 58, 0.15),
     0 8px 24px rgba(232, 200, 64, 0.1);
 }
+
+/* ================================================================
+   3D Hover Card Effect
+   ================================================================ */
+
+.hover-3d {
+  display: inline-grid;
+  perspective: 75rem;
+  --transform: 0, 0;
+  --shine: 100% 100%;
+  --shadow: 0rem 0rem 0rem;
+  --ease: linear(0, 0.931 13.8%, 1.196 21.4%, 1.343 29.8%, 1.378 36%, 1.365 43.2%, 1.059 78%, 1);
+
+  filter: drop-shadow(var(--shadow) 0.1rem #00000003) drop-shadow(var(--shadow) 0.2rem #00000003) drop-shadow(var(--shadow) 0.3rem #00000003) drop-shadow(var(--shadow) 0.4rem #00000003);
+  transition: filter ease-out 400ms;
+}
+
+.hover-3d>*:nth-child(n + 2) {
+  isolation: isolate;
+  z-index: 1;
+}
+
+.hover-3d>*:first-child {
+  overflow: hidden;
+  grid-area: 1/1/4/4;
+  transform: rotate3d(var(--transform), 0, 10deg);
+  transition:
+    transform var(--ease) 500ms,
+    scale var(--ease) 500ms,
+    outline-color ease-out 500ms;
+  outline: 0.5px solid #0000;
+  outline-offset: -1px;
+}
+
+.hover-3d>*:first-child::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  width: 33.333%;
+  height: 33.333%;
+  scale: 500%;
+  opacity: 0;
+  filter: blur(0.75rem);
+  background-image: radial-gradient(circle at 50%, #fff3 10%, transparent 50%);
+  translate: var(--shine);
+  transition:
+    translate ease-out 400ms,
+    opacity ease-out 400ms;
+}
+
+.hover-3d:hover {
+  --ease: linear(0, 0.708 15.2%, 0.927 23.6%, 1.067 33%, 1.12 41%, 1.13 50.2%, 1.019 83.2%, 1);
+}
+
+.hover-3d:hover>*:first-child {
+  outline-color: #fff1;
+  scale: 1.05;
+}
+
+.hover-3d:hover>*:first-child::before,
+.hover-3d:hover>*:first-child::after {
+  opacity: 1;
+}
+
+.hover-3d>*:nth-child(n + 2) {
+  scale: 1.2;
+}
+
+.hover-3d>*:nth-child(2) {
+  grid-area: 1/1/2/2;
+}
+
+.hover-3d>*:nth-child(3) {
+  grid-area: 1/2/2/3;
+}
+
+.hover-3d>*:nth-child(4) {
+  grid-area: 1/3/2/4;
+}
+
+.hover-3d>*:nth-child(5) {
+  grid-area: 2/1/3/2;
+}
+
+.hover-3d>*:nth-child(6) {
+  grid-area: 2/3/3/4;
+}
+
+.hover-3d>*:nth-child(7) {
+  grid-area: 3/1/4/2;
+}
+
+.hover-3d>*:nth-child(8) {
+  grid-area: 3/2/4/3;
+}
+
+.hover-3d>*:nth-child(9) {
+  grid-area: 3/3/4/4;
+}
+
+.hover-3d:has(> *:nth-child(2):hover) {
+  --transform: -1, 1;
+  --shine: 0% 0%;
+  --shadow: -0.5rem -0.5rem;
+}
+
+.hover-3d:has(> *:nth-child(3):hover) {
+  --transform: -1, 0;
+  --shine: 100% 0%;
+  --shadow: 0rem -0.5rem;
+}
+
+.hover-3d:has(> *:nth-child(4):hover) {
+  --transform: -1, -1;
+  --shine: 200% 0%;
+  --shadow: 0.5rem -0.5rem;
+}
+
+.hover-3d:has(> *:nth-child(5):hover) {
+  --transform: 0, 1;
+  --shine: 0% 100%;
+  --shadow: -0.5rem 0rem;
+}
+
+.hover-3d:has(> *:nth-child(6):hover) {
+  --transform: 0, -1;
+  --shine: 200% 100%;
+  --shadow: 0.5rem 0rem;
+}
+
+.hover-3d:has(> *:nth-child(7):hover) {
+  --transform: 1, 1;
+  --shine: 0% 200%;
+  --shadow: -0.5rem 0.5rem;
+}
+
+.hover-3d:has(> *:nth-child(8):hover) {
+  --transform: 1, 0;
+  --shine: 100% 200%;
+  --shadow: 0rem 0.5rem;
+}
+
+.hover-3d:has(> *:nth-child(9):hover) {
+  --transform: 1, -1;
+  --shine: 200% 200%;
+  --shadow: 0.5rem 0.5rem;
+}
+
+/* ================================================================
+   iPhone Mockup Component (DaisyUI-inspired)
+   ================================================================ */
+
+.mockup-phone {
+  display: inline-block;
+  border: 4px solid #1f1f1f;
+  background-color: #1f1f1f;
+  border-radius: 48px;
+  position: relative;
+  overflow: hidden;
+  padding: 10px;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.1) inset,
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.mockup-phone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 24px;
+  background: #1f1f1f;
+  border-radius: 0 0 20px 20px;
+  z-index: 20;
+}
+
+.mockup-phone-camera {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(145deg, #0a0a0a, #2a2a2a);
+  border-radius: 50%;
+  z-index: 30;
+  box-shadow: 0 0 0 2px #1a1a1a inset;
+}
+
+.mockup-phone-camera::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, #3b82f6 0%, #1e3a5f 100%);
+  border-radius: 50%;
+}
+
+.mockup-phone-display {
+  border-radius: 38px;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  background: #000;
+}
+
+.mockup-phone-display img,
+.mockup-phone-display video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* iPhone mockup sizes */
+.mockup-phone-sm {
+  width: 180px;
+}
+
+.mockup-phone-sm .mockup-phone-display {
+  width: 160px;
+  height: 320px;
+}
+
+.mockup-phone-md {
+  width: 220px;
+}
+
+.mockup-phone-md .mockup-phone-display {
+  width: 200px;
+  height: 400px;
+}
+
+.mockup-phone-lg {
+  width: 280px;
+}
+
+.mockup-phone-lg .mockup-phone-display {
+  width: 260px;
+  height: 520px;
+}
+
+/* Floating animation for phone mockup */
+@keyframes phone-float {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(6deg);
+  }
+
+  50% {
+    transform: translateY(-15px) rotate(6deg);
+  }
+}
+
+.phone-float {
+  animation: phone-float 4s ease-in-out infinite;
+}
+
+/* Glow effect for phone mockup */
+.mockup-phone-glow {
+  position: relative;
+}
+
+.mockup-phone-glow::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(ellipse at center, var(--accent-primary) 0%, transparent 70%);
+  opacity: 0.3;
+  z-index: -1;
+  filter: blur(30px);
+  border-radius: 60px;
+}

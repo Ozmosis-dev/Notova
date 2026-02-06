@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useNoteTagActions, useTagActions } from './useTags';
 
 interface SuggestedTag {
     name: string;
@@ -34,9 +33,6 @@ export function useSmartTags(): UseSmartTagsReturn {
     const [error, setError] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [noteIds, setNoteIds] = useState<string[]>([]);
-
-    const { addTagToNote } = useNoteTagActions();
-    const { createTag } = useTagActions();
 
     const generateSmartTags = useCallback(async (ids: string[], existingTags?: string[]) => {
         try {
@@ -96,18 +92,21 @@ export function useSmartTags(): UseSmartTagsReturn {
             setApplying(true);
             setError(null);
 
-            // Get the tags that need to be applied
-            const tagsToApply = suggestedTags.filter(t => selectedTags.has(t.name));
+            // Get the tag names that need to be applied
+            const tagNames = suggestedTags
+                .filter(t => selectedTags.has(t.name))
+                .map(t => t.name);
 
-            // Apply each tag to the relevant notes
-            for (const tag of tagsToApply) {
-                // Create the tag if it doesn't exist
-                await createTag(tag.name);
+            // Use the batch endpoint for much better performance
+            const response = await fetch('/api/ai/smart-tags/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ noteIds, tagNames }),
+            });
 
-                // Add tag to each note
-                for (const noteId of noteIds) {
-                    await addTagToNote(noteId, tag.name);
-                }
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to apply tags');
             }
 
             setModalOpen(false);
@@ -118,7 +117,7 @@ export function useSmartTags(): UseSmartTagsReturn {
         } finally {
             setApplying(false);
         }
-    }, [selectedTags, suggestedTags, noteIds, createTag, addTagToNote]);
+    }, [selectedTags, suggestedTags, noteIds]);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);

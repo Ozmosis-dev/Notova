@@ -578,6 +578,58 @@ export default function Home() {
     }
   }, [selectedNotebookInGrid]);
 
+  // Bulk action handlers for multi-select notes feature
+  const handleBulkMoveNotes = useCallback(async (noteIds: string[], targetNotebookId: string) => {
+    try {
+      // Move all selected notes to target notebook
+      await Promise.all(
+        noteIds.map(noteId =>
+          fetch(`/api/notes/${noteId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notebookId: targetNotebookId }),
+          })
+        )
+      );
+      await refetchAppData();
+    } catch (error) {
+      console.error('Failed to move notes:', error);
+      throw error;
+    }
+  }, [refetchAppData]);
+
+  const handleBulkDeleteNotes = useCallback(async (noteIds: string[]) => {
+    try {
+      // Move all selected notes to trash
+      await Promise.all(
+        noteIds.map(noteId =>
+          fetch(`/api/notes/${noteId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isTrash: true }),
+          })
+        )
+      );
+      await refetchAppData();
+      // Update trash count
+      setTrashCount(prev => prev + noteIds.length);
+    } catch (error) {
+      console.error('Failed to delete notes:', error);
+      throw error;
+    }
+  }, [refetchAppData]);
+
+  const handleBulkSummarizeNotes = useCallback((noteIds: string[]) => {
+    // Summarize selected notes - use the first note for now, or could implement multi-note summary
+    if (noteIds.length > 0) {
+      // For now, summarize the first note or implement a multi-note summary feature
+      const firstNote = notes.find(n => noteIds.includes(n.id));
+      if (firstNote) {
+        aiSummary.summarizeNote(firstNote.id, `${noteIds.length} Selected Notes`);
+      }
+    }
+  }, [notes, aiSummary]);
+
   return (
     <AppLayout
       notebooks={notebooksWithCount}
@@ -680,7 +732,7 @@ export default function Home() {
                   onSummarizeNotebook={handleSummarizeNotebook}
                   isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookId}
                   allTags={allAvailableTags}
-                  onGenerateSmartTags={() => smartTags.generateSmartTags(mappedNotes.map(n => n.id), allAvailableTags.map(t => t.name))}
+                  onGenerateSmartTags={(noteIds) => smartTags.generateSmartTags(noteIds, allAvailableTags.map(t => t.name))}
                   isGeneratingSmartTags={smartTags.loading}
                   smartTagsModalOpen={smartTags.modalOpen}
                   onCloseSmartTagsModal={smartTags.closeModal}
@@ -696,7 +748,11 @@ export default function Home() {
                   }}
                   isApplyingSmartTags={smartTags.applying}
                   smartTagsError={smartTags.error}
-                  smartTagsNoteCount={mappedNotes.length}
+                  smartTagsNoteCount={smartTags.noteIds.length}
+                  notebooks={notebooksWithCount}
+                  onMoveNotes={handleBulkMoveNotes}
+                  onBulkDelete={handleBulkDeleteNotes}
+                  onBulkSummarize={handleBulkSummarizeNotes}
                 />
               )}
             </div>
@@ -724,7 +780,7 @@ export default function Home() {
                 onSummarizeNotebook={handleSummarizeNotebook}
                 isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookInGrid}
                 allTags={allAvailableTags}
-                onGenerateSmartTags={() => smartTags.generateSmartTags(mappedNotes.map(n => n.id), allAvailableTags.map(t => t.name))}
+                onGenerateSmartTags={(noteIds) => smartTags.generateSmartTags(noteIds, allAvailableTags.map(t => t.name))}
                 isGeneratingSmartTags={smartTags.loading}
                 smartTagsModalOpen={smartTags.modalOpen}
                 onCloseSmartTagsModal={smartTags.closeModal}
@@ -740,7 +796,11 @@ export default function Home() {
                 }}
                 isApplyingSmartTags={smartTags.applying}
                 smartTagsError={smartTags.error}
-                smartTagsNoteCount={mappedNotes.length}
+                smartTagsNoteCount={smartTags.noteIds.length}
+                notebooks={notebooksWithCount}
+                onMoveNotes={handleBulkMoveNotes}
+                onBulkDelete={handleBulkDeleteNotes}
+                onBulkSummarize={handleBulkSummarizeNotes}
               />
             </div>
           )}

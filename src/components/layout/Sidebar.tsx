@@ -404,7 +404,7 @@ export function Sidebar({
                                                 initial="hidden"
                                                 animate="visible"
                                                 whileHover={{ x: 2 }}
-                                                className="group w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all cursor-pointer"
+                                                className="group w-full flex items-center justify-between px-3 py-1 rounded-xl text-sm transition-all cursor-pointer"
                                                 style={{
                                                     background: selectedTagId === tag.id
                                                         ? 'var(--sidebar-selection-bg)'
