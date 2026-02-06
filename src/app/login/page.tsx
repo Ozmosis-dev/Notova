@@ -98,24 +98,6 @@ const buttonHoverVariants = {
     tap: { scale: 0.98 }
 }
 
-const cardHoverVariants = {
-    rest: { y: 0, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" },
-    hover: {
-        y: -4,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15)",
-        transition: { type: "spring" as const, stiffness: 300, damping: 20 }
-    }
-}
-
-const iconHoverVariants = {
-    rest: { rotate: 0, scale: 1 },
-    hover: {
-        rotate: [0, -10, 10, -5, 0],
-        scale: 1.1,
-        transition: { duration: 0.5 }
-    }
-}
-
 // Floating animation variants for parallax depth effect
 const floatingSlowVariants = {
     animate: {
