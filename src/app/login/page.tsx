@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, Variants, useScroll, useTransform, useInView } from 'framer-motion'
-import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail, ChevronUp } from 'lucide-react'
+import { motion, Variants, useScroll, useTransform } from 'framer-motion'
+import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeKey } from '@/lib/themes'
 import { ThemeCard } from '@/components/ui/ThemeCard'
@@ -239,41 +239,6 @@ const FeatureCard = ({ feature, i, isMobile }: { feature: any, i: number, isMobi
         </motion.div>
     );
 };
-
-// Scroll-to-Top Arrow — appears when the carousel section is in view
-const ScrollToTopArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) => {
-    const isInView = useInView(containerRef, { amount: 0.3 })
-    const [dismissed, setDismissed] = React.useState(false)
-
-    // Reset dismissed state when the section leaves and re-enters view
-    React.useEffect(() => {
-        if (!isInView) setDismissed(false)
-    }, [isInView])
-
-    const handleClick = () => {
-        setDismissed(true)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-
-    if (!isInView || dismissed) return null
-
-    return (
-        <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.4 }}
-            onClick={handleClick}
-            className="mx-auto mt-6 flex flex-col items-center gap-1 text-white/30 hover:text-white/60 transition-colors duration-300 cursor-pointer"
-            aria-label="Scroll to top"
-        >
-            <div className="animate-gentle-bounce">
-                <ChevronUp className="w-5 h-5" />
-            </div>
-            <span className="text-[9px] tracking-[0.15em] uppercase font-medium">Back to top</span>
-        </motion.button>
-    )
-}
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
