@@ -126,12 +126,15 @@ export default function LoginPage() {
     const heroCardY = useTransform(scrollY, [0, 300], [0, -20])
     const heroBadgeY = useTransform(scrollY, [0, 300], [0, 50])
 
-    // Set warm theme as default for login page on first visit
+    // Set warm theme as default for login page on first visit only
     useEffect(() => {
         setMounted(true)
-        // Only set default if no theme has been explicitly chosen
+        // Only set warm as default if the user has never visited before
+        // Respect 'system' preference if explicitly chosen
         const storedTheme = localStorage.getItem('theme')
-        if (!storedTheme || storedTheme === 'system') {
+        const hasVisitedBefore = localStorage.getItem('has_visited')
+        if (!storedTheme && !hasVisitedBefore) {
+            localStorage.setItem('has_visited', 'true')
             setTheme('warm')
         }
     }, [setTheme])

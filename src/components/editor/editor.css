@@ -43,14 +43,9 @@
 .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
-    color: #9A9A9A;
+    color: var(--text-muted);
     pointer-events: none;
     height: 0;
-}
-
-/* Dark mode placeholder */
-.dark .ProseMirror p.is-editor-empty:first-child::before {
-    color: #6A6A6A;
 }
 
 /* Typography */
@@ -105,31 +100,27 @@
     margin-bottom: 0.25rem;
 }
 
-/* Blockquote - Warm Golden */
+/* Blockquote - Uses accent color from theme */
 .ProseMirror blockquote {
-    border-left: 4px solid #F7D44C;
+    border-left: 4px solid var(--highlight);
     padding-left: 1rem;
     margin-left: 0;
     margin-right: 0;
     margin-bottom: 0.75rem;
     font-style: italic;
-    color: #6A6A6A;
+    color: var(--text-secondary);
 }
 
-.dark .ProseMirror blockquote {
-    border-left-color: #F7D44C;
-    color: #9A9A9A;
-}
-
-/* Code Block */
+/* Code Block - Uses theme-aware colors */
 .ProseMirror pre {
-    background: #2A2A2A;
-    color: #F5F5F5;
+    background: var(--surface-content-secondary);
+    color: var(--text-primary);
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     padding: 1rem;
     border-radius: 12px;
     margin-bottom: 0.75rem;
     overflow-x: auto;
+    border: 1px solid var(--border-subtle);
 }
 
 .ProseMirror pre code {
@@ -139,60 +130,44 @@
     padding: 0;
 }
 
-/* Inline Code */
+/* Inline Code - Uses theme-aware colors */
 .ProseMirror code {
-    background: #F6ECC9;
+    background: var(--highlight-soft);
     padding: 0.125rem 0.375rem;
     border-radius: 6px;
     font-size: 0.875rem;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-.dark .ProseMirror code {
-    background: #3A3A3A;
-}
-
 /* Horizontal Rule */
 .ProseMirror hr {
     border: none;
-    border-top: 2px solid #E8E4D9;
+    border-top: 2px solid var(--border-primary);
     margin: 1.5rem 0;
 }
 
-.dark .ProseMirror hr {
-    border-top-color: #3A3A3A;
-}
-
-/* Links - Coral Accent */
+/* Links - Uses accent color from theme */
 .ProseMirror a {
-    color: #EB7A53;
+    color: var(--accent-primary);
     text-decoration: underline;
     cursor: pointer;
 }
 
 .ProseMirror a:hover {
-    color: #D66A43;
+    color: var(--accent-secondary);
 }
 
-.dark .ProseMirror a {
-    color: #F7D44C;
-}
-
-.dark .ProseMirror a:hover {
-    color: #FFE066;
-}
-
-/* Highlight - Yellow Marker */
+/* Highlight - Uses highlight color from theme */
 .ProseMirror mark {
-    background: #F7D44C;
-    color: #000000;
+    background: var(--highlight);
+    color: var(--text-on-accent);
     border-radius: 4px;
     padding: 2px 4px;
 }
 
-/* Selection - Warm Yellow */
+/* Selection - Uses highlight color from theme */
 .ProseMirror ::selection {
-    background: rgba(247, 212, 76, 0.35);
+    background: var(--highlight-soft);
 }
 
 /* Images from ENEX files */
