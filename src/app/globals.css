@@ -626,6 +626,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 body {
@@ -635,6 +636,8 @@ body {
   font-size: var(--font-body);
   line-height: var(--leading-normal);
   transition: background-color var(--transition-normal), color var(--transition-normal);
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ================================================================
@@ -939,8 +942,137 @@ body {
   }
 }
 
-.float {
+.animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.animate-float-slower {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* ================================================================
+   3D Touch Ripple Wave Animation
+   Creates expanding ripple waves for the CTA section
+   ================================================================ */
+
+@keyframes ripple-wave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.animate-ripple-wave-1 {
+  animation: ripple-wave 10s ease-out infinite;
+}
+
+.animate-ripple-wave-2 {
+  animation: ripple-wave 10s ease-out infinite;
+  animation-delay: 3.3s;
+}
+
+.animate-ripple-wave-3 {
+  animation: ripple-wave 10s ease-out infinite;
+  animation-delay: 6.6s;
+}
+
+/* ================================================================
+   Blob Border Animation - Blob animates behind the card
+   Creates a glowing effect visible through the card content
+   ================================================================ */
+
+@keyframes blob-border-trace {
+  0% {
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+  }
+
+  25% {
+    top: 0;
+    left: 100%;
+    transform: translate(-50%, -50%);
+  }
+
+  50% {
+    top: 100%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+  }
+
+  75% {
+    top: 100%;
+    left: 0;
+    transform: translate(-50%, -50%);
+  }
+
+  100% {
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.feature-card-blob {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The blob that animates behind the card */
+.feature-card-blob::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--blob-color, #F7D44C);
+  opacity: 0;
+  filter: blur(60px);
+  animation: blob-border-trace 6s infinite ease-in-out;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.feature-card-blob:hover::before {
+  opacity: 0.6;
+}
+
+/* Color variations */
+.feature-card-blob--yellow {
+  --blob-color: #F7D44C;
+}
+
+.feature-card-blob--green {
+  --blob-color: #7a9a65;
+}
+
+.feature-card-blob--blue {
+  --blob-color: #3B82F6;
 }
 
 /* ================================================================
@@ -1322,7 +1454,19 @@ input:-webkit-autofill:active {
 
 .mockup-phone-lg .mockup-phone-display {
   width: 260px;
-  height: 520px;
+  height: 556px;
+}
+
+/* Responsive sizing for phone mockup */
+@media (max-width: 1024px) {
+  .mockup-phone-lg {
+    width: 240px;
+  }
+
+  .mockup-phone-lg .mockup-phone-display {
+    width: 220px;
+    height: 470px;
+  }
 }
 
 /* Floating animation for phone mockup */
@@ -1356,4 +1500,185 @@ input:-webkit-autofill:active {
   z-index: -1;
   filter: blur(30px);
   border-radius: 60px;
+}
+
+/* ================================================================
+   Mobile Touch States - Activate hover effects on touch devices
+   ================================================================ */
+
+/* Touch device detection - enables hover effects as active states */
+@media (hover: none) and (pointer: coarse) {
+
+  /* Feature card blob - active on touch/tap or scroll on mobile */
+  .feature-card-blob:active::before,
+  .feature-card-blob:focus-within::before,
+  .feature-card-blob.mobile-hover::before {
+    opacity: 0.6;
+  }
+
+  /* Basic card touch feedback */
+  .card:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* 3D hover card touch activation or scroll */
+  .hover-3d:active,
+  .hover-3d.mobile-hover {
+    --ease: linear(0, 0.708 15.2%, 0.927 23.6%, 1.067 33%, 1.12 41%, 1.13 50.2%, 1.019 83.2%, 1);
+  }
+
+  .hover-3d:active>*:first-child,
+  .hover-3d.mobile-hover>*:first-child {
+    outline-color: #fff1;
+    scale: 1.05;
+  }
+
+  .hover-3d:active>*:first-child::before,
+  .hover-3d:active>*:first-child::after,
+  .hover-3d.mobile-hover>*:first-child::before,
+  .hover-3d.mobile-hover>*:first-child::after {
+    opacity: 1;
+  }
+
+  /* FAB touch feedback */
+  .fab:active {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* Mobile-specific group hover activation on touch */
+@media (max-width: 768px) {
+
+  /* Feature card blob animations always visible on mobile scroll */
+  .feature-card-blob::before {
+    opacity: 0.3;
+  }
+
+  .feature-card-blob:active::before,
+  .feature-card-blob.mobile-hover::before {
+    opacity: 0.7;
+  }
+
+  /* Group hover effects activated on touch or scroll for mobile */
+  .group:active .group-hover\:opacity-100,
+  .group:focus-within .group-hover\:opacity-100,
+  .group.mobile-hover .group-hover\:opacity-100 {
+    opacity: 1 !important;
+  }
+
+  .group:active .group-hover\:opacity-5,
+  .group:focus-within .group-hover\:opacity-5,
+  .group.mobile-hover .group-hover\:opacity-5 {
+    opacity: 0.05 !important;
+  }
+
+  .group:active .group-hover\:scale-105,
+  .group:focus-within .group-hover\:scale-105,
+  .group.mobile-hover .group-hover\:scale-105 {
+    transform: scale(1.05) !important;
+  }
+
+  .group:active .group-hover\:scale-110,
+  .group:focus-within .group-hover\:scale-110,
+  .group.mobile-hover .group-hover\:scale-110 {
+    transform: scale(1.1) !important;
+  }
+
+  .group:active .group-hover\:scale-\[1\.03\],
+  .group:focus-within .group-hover\:scale-\[1\.03\],
+  .group.mobile-hover .group-hover\:scale-\[1\.03\] {
+    transform: scale(1.03) !important;
+  }
+
+  .group:active .group-hover\:-translate-y-1,
+  .group:focus-within .group-hover\:-translate-y-1,
+  .group.mobile-hover .group-hover\:-translate-y-1 {
+    transform: translateY(-0.25rem) !important;
+  }
+
+  .group:active .group-hover\:translate-y-0,
+  .group:focus-within .group-hover\:translate-y-0,
+  .group.mobile-hover .group-hover\:translate-y-0 {
+    transform: translateY(0) !important;
+  }
+
+  .group:active .group-hover\:rotate-3,
+  .group:focus-within .group-hover\:rotate-3,
+  .group.mobile-hover .group-hover\:rotate-3 {
+    --tw-rotate: 3deg !important;
+    transform: rotate(var(--tw-rotate)) !important;
+  }
+
+  .group:active .group-hover\:grayscale-0,
+  .group:focus-within .group-hover\:grayscale-0,
+  .group.mobile-hover .group-hover\:grayscale-0 {
+    filter: grayscale(0) !important;
+  }
+
+  .group:active .group-hover\:border-white\/10,
+  .group:focus-within .group-hover\:border-white\/10,
+  .group.mobile-hover .group-hover\:border-white\/10 {
+    border-color: rgb(255 255 255 / 0.1) !important;
+  }
+
+  /* Hover card backgrounds on mobile touch */
+  .group:active [class*="group-hover:border-"],
+  .group:focus-within [class*="group-hover:border-"],
+  .group.mobile-hover [class*="group-hover:border-"] {
+    transition: all 0.3s ease;
+  }
+
+  /* 3D card effect activation on mobile tap or scroll */
+  .hover-3d {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hover-3d:active>*:first-child,
+  .hover-3d.mobile-hover>*:first-child {
+    scale: 1.02;
+    outline-color: #fff1;
+  }
+}
+
+/* ================================================================
+   Utility Classes
+   ================================================================ */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+/* ================================================================
+   Carousel Animation
+   ================================================================ */
+@keyframes carousel-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (min-width: 768px) {
+  .animate-carousel {
+    animation: carousel-scroll 60s linear infinite;
+    /* Ensure hardware acceleration for smoother animation */
+    will-change: transform;
+  }
+
+  .animate-carousel:hover {
+    animation-play-state: paused;
+    /* Pause on hover */
+  }
 }

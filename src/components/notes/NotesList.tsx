@@ -117,14 +117,13 @@ function formatRelativeDate(date: Date | string): string {
 }
 
 const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 8 },
     visible: (i: number) => ({
         opacity: 1,
         y: 0,
-        scale: 1,
         transition: {
-            delay: i * 0.05,
-            duration: 0.3,
+            delay: i < 8 ? i * 0.02 : 0,
+            duration: 0.2,
             ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
         },
     }),

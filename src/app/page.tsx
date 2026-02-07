@@ -419,10 +419,10 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch trash count on initial load and when notes change
+  // Fetch trash count on initial load only (optimistic updates handle changes)
   useEffect(() => {
     fetchTrashCount();
-  }, [notes, fetchTrashCount]);
+  }, [fetchTrashCount]);
 
   // Note: We no longer auto-select the first note to allow full panel view by default
 

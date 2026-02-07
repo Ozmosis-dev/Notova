@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconButton } from '../ui/EmojiPicker';
 import { Modal } from '../ui/Modal';
@@ -46,13 +46,13 @@ interface SidebarProps {
 }
 
 const listItemVariants = {
-    hidden: { opacity: 0, x: -10 },
+    hidden: { opacity: 0, x: -8 },
     visible: (i: number) => ({
         opacity: 1,
         x: 0,
         transition: {
-            delay: i * 0.03,
-            duration: 0.2,
+            delay: Math.min(i, 6) * 0.02,
+            duration: 0.15,
         },
     }),
 };
@@ -108,25 +108,30 @@ export function Sidebar({
         setIsReportIssueModalOpen(true);
     };
 
-    // Sort tags alphabetically A-Z
-    const sortedTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
+    // Memoize sorted arrays to prevent re-sorting on every render
+    const sortedTags = useMemo(() =>
+        [...tags].sort((a, b) => a.name.localeCompare(b.name)),
+        [tags]
+    );
 
-    // Sort notebooks: pinned first, then by name
-    const sortedNotebooks = [...notebooks].sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return 0; // Keep original order for non-pinned
-    });
+    const sortedNotebooks = useMemo(() =>
+        [...notebooks].sort((a, b) => {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return 0;
+        }),
+        [notebooks]
+    );
 
-    const handleNotebookClick = (id: string | null) => {
+    const handleNotebookClick = useCallback((id: string | null) => {
         onNotebookSelect?.(id);
         onItemClick?.();
-    };
+    }, [onNotebookSelect, onItemClick]);
 
-    const handleTagClick = (id: string | null) => {
+    const handleTagClick = useCallback((id: string | null) => {
         onTagSelect?.(id);
         onItemClick?.();
-    };
+    }, [onTagSelect, onItemClick]);
 
     const handleConfirmDelete = async () => {
         if (!tagToDelete || !onTagDelete) return;
@@ -149,7 +154,6 @@ export function Sidebar({
                 {/* All Notes */}
                 <div className="p-3 md:p-4">
                     <motion.button
-                        whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                             onAllNotesClick?.();
@@ -160,12 +164,6 @@ export function Sidebar({
                             background: !selectedNotebookId && !selectedTagId && !showNotebooksView
                                 ? 'var(--sidebar-selection-bg)'
                                 : 'transparent',
-                            backdropFilter: !selectedNotebookId && !selectedTagId && !showNotebooksView
-                                ? 'blur(12px) saturate(180%)'
-                                : 'none',
-                            WebkitBackdropFilter: !selectedNotebookId && !selectedTagId && !showNotebooksView
-                                ? 'blur(12px) saturate(180%)'
-                                : 'none',
                             border: !selectedNotebookId && !selectedTagId && !showNotebooksView
                                 ? '1px solid var(--sidebar-selection-border)'
                                 : '1px solid transparent',
@@ -235,7 +233,6 @@ export function Sidebar({
                                 >
                                     {/* New Notebook Button */}
                                     <motion.button
-                                        whileHover={{ x: 2 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={onNewNotebook}
                                         className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-colors"
@@ -257,8 +254,6 @@ export function Sidebar({
                                             variants={listItemVariants}
                                             initial="hidden"
                                             animate="visible"
-                                            whileHover={{ x: 2 }}
-                                            whileTap={{ scale: 0.98 }}
                                             onClick={() => handleNotebookClick(notebook.id)}
                                             role="button"
                                             tabIndex={0}
@@ -267,12 +262,6 @@ export function Sidebar({
                                                 background: selectedNotebookId === notebook.id
                                                     ? 'var(--sidebar-selection-bg)'
                                                     : 'transparent',
-                                                backdropFilter: selectedNotebookId === notebook.id
-                                                    ? 'blur(12px) saturate(180%)'
-                                                    : 'none',
-                                                WebkitBackdropFilter: selectedNotebookId === notebook.id
-                                                    ? 'blur(12px) saturate(180%)'
-                                                    : 'none',
                                                 border: selectedNotebookId === notebook.id
                                                     ? '1px solid var(--sidebar-selection-border)'
                                                     : '1px solid transparent',
@@ -403,18 +392,11 @@ export function Sidebar({
                                                 variants={listItemVariants}
                                                 initial="hidden"
                                                 animate="visible"
-                                                whileHover={{ x: 2 }}
                                                 className="group w-full flex items-center justify-between px-3 py-1 rounded-xl text-sm transition-all cursor-pointer"
                                                 style={{
                                                     background: selectedTagId === tag.id
                                                         ? 'var(--sidebar-selection-bg)'
                                                         : 'transparent',
-                                                    backdropFilter: selectedTagId === tag.id
-                                                        ? 'blur(12px) saturate(180%)'
-                                                        : 'none',
-                                                    WebkitBackdropFilter: selectedTagId === tag.id
-                                                        ? 'blur(12px) saturate(180%)'
-                                                        : 'none',
                                                     border: selectedTagId === tag.id
                                                         ? '1px solid var(--sidebar-selection-border)'
                                                         : '1px solid transparent',
@@ -494,7 +476,6 @@ export function Sidebar({
                     <div ref={profileMenuRef}>
                         {/* Settings toggle button */}
                         <motion.button
-                            whileHover={{ x: 2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
@@ -539,7 +520,6 @@ export function Sidebar({
 
                                         {/* Add to Home Screen */}
                                         <motion.button
-                                            whileHover={{ x: 2 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={() => {
                                                 setIsAddToHomeScreenModalOpen(true);
@@ -634,7 +614,6 @@ export function Sidebar({
 
                     {/* Trash Button */}
                     <motion.button
-                        whileHover={{ x: 2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                             onTrashClick?.();

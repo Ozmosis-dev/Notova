@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,6 +9,8 @@ import { motion, Variants, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeKey } from '@/lib/themes'
+import { ThemeCard } from '@/components/ui/ThemeCard'
+import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 
 // Animation variants for staggered reveals and micro-interactions
 const containerVariants: Variants = {
@@ -110,6 +112,118 @@ const floatingSlowVariants = {
     }
 }
 
+// Hook to detect if element is in center of viewport for mobile scroll animations
+const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement>) => {
+    const [isActive, setIsActive] = useState(false);
+    const internalRef = useRef<HTMLDivElement>(null);
+    const ref = providedRef || internalRef;
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (entry) {
+                    setIsActive(entry.isIntersecting);
+                }
+            },
+            {
+                // Trigger when element is in the vertical center area of the viewport
+                rootMargin: '-40% 0px -40% 0px',
+                threshold: 0
+            }
+        );
+
+        if (ref.current) {
+            observer.observe(ref.current);
+        }
+
+        return () => {
+            if (ref.current) {
+                observer.unobserve(ref.current);
+            }
+        };
+    }, [ref]);
+
+    return { ref, isActive };
+};
+
+
+
+// Separate component for Feature Card to use hooks
+const FeatureCard = ({ feature, i }: { feature: any, i: number }) => {
+    // Scroll-linked scale effect
+    const cardRef = useRef(null);
+    const { isActive } = useScrollActive(cardRef);
+    const { scrollYProgress } = useScroll({
+        target: cardRef,
+        offset: ["start end", "end start"]
+    });
+
+    // Scale up slightly as it moves into view
+    const scaleShow = useTransform(scrollYProgress, [0, 0.5, 1], [0.92, 1, 0.92]);
+    const opacityShow = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
+    const yParallax = useTransform(scrollYProgress, [0, 1], [50, -50]);
+
+    // Staggered parallax based on index (odd/even)
+    const yOffset = i % 2 === 0 ? yParallax : useTransform(scrollYProgress, [0, 1], [20, -20]);
+
+    return (
+        <motion.div
+            ref={cardRef}
+            key={i}
+            style={{
+                scale: scaleShow,
+                opacity: opacityShow,
+                y: yOffset
+            }}
+            className={`hover-3d w-full h-full group ${isActive ? 'mobile-hover' : ''}`}
+        >
+            {/* Card Content - First child for hover-3d effect */}
+            <div
+                className="relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 group-hover:border-white/10 transition-colors duration-500"
+            >
+                {/* Hover Glow */}
+                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3d`} />
+
+                <div className="relative z-10 flex flex-col h-full p-8">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-6">
+                        <div
+                            className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-linear-to-br ${feature.gradient} shadow-lg shadow-black/20 transition-all duration-500 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-3 group-hover:shadow-xl`}
+                        >
+                            <feature.Icon className="text-black/80 drop-shadow-sm transition-transform duration-500 group-hover:scale-110" size={20} strokeWidth={2.5} />
+                        </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{feature.title}</h3>
+                    <p className="text-white/50 leading-relaxed mb-8 text-sm font-medium">{feature.desc}</p>
+
+                    {/* Image Container */}
+                    <div className="mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-colors">
+                        <Image
+                            src={feature.img}
+                            alt={feature.title}
+                            fill
+                            className="object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
+                        />
+                        {/* Overlay to ensure text readability if desired, or nice fade */}
+                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                    </div>
+                </div>
+            </div>
+            {/* 8 empty divs for hover-3d effect zones */}
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </motion.div>
+    );
+};
+
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -121,10 +235,44 @@ export default function LoginPage() {
     const { theme, setTheme } = useTheme()
 
     // Scroll-based parallax for dimensional hero effect
+    // Scroll-based parallax for dimensional hero effect
     const { scrollY } = useScroll()
-    const heroTextY = useTransform(scrollY, [0, 300], [0, 30])
-    const heroCardY = useTransform(scrollY, [0, 300], [0, -20])
-    const heroBadgeY = useTransform(scrollY, [0, 300], [0, 50])
+    const heroTextY = useTransform(scrollY, [0, 500], [0, 100])
+    const heroCardY = useTransform(scrollY, [0, 500], [0, -50])
+    const heroBadgeY = useTransform(scrollY, [0, 500], [0, 150])
+
+    // Background blobs parallax
+    const blob1Y = useTransform(scrollY, [0, 1000], [0, 300])
+    const blob2Y = useTransform(scrollY, [0, 1000], [0, -200])
+
+    // Theme strip parallax
+    const themeStripRef = useRef(null)
+    const { scrollYProgress: themeScrollProgress } = useScroll({
+        target: themeStripRef,
+        offset: ["start end", "end start"]
+    })
+    const themeStripX = useTransform(themeScrollProgress, [0, 1], [0, -50])
+
+    // Deep Dive Section Parallax
+    const deepDiveRef = useRef(null)
+    const { scrollYProgress: deepDiveProgress } = useScroll({
+        target: deepDiveRef,
+        offset: ["start end", "end start"]
+    })
+
+    const deepDiveTextY = useTransform(deepDiveProgress, [0, 1], [100, -100])
+    const deepDiveLottieY = useTransform(deepDiveProgress, [0, 1], [50, -50])
+
+    // CTA Section Parallax
+    const ctaRef = useRef(null)
+    const { scrollYProgress: ctaProgress } = useScroll({
+        target: ctaRef,
+        offset: ["start end", "end start"]
+    })
+
+    const ctaTextY = useTransform(ctaProgress, [0.2, 0.8], [50, -50])
+    const ctaScale = useTransform(ctaProgress, [0.2, 0.5], [0.9, 1])
+    const ctaOpacity = useTransform(ctaProgress, [0.1, 0.4], [0, 1])
 
     // Set warm theme as default for login page on first visit only
     useEffect(() => {
@@ -176,14 +324,25 @@ export default function LoginPage() {
 
             {/* Background Decoration */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] rounded-full opacity-30 blur-[100px]"
+                <motion.div
+                    style={{ y: blob1Y }}
+                    className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] rounded-full opacity-30 blur-[100px]"
+                    // @ts-ignore
                     style={{ background: 'radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%)' }} />
-                <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[100px]"
+                <motion.div
+                    style={{ y: blob2Y }}
+                    className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[100px]"
+                    // @ts-ignore
                     style={{ background: 'radial-gradient(circle, var(--surface-card-gold) 0%, transparent 70%)' }} />
             </div>
 
             {/* Navbar */}
-            <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
+            <motion.nav
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto"
+            >
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 md:w-9 md:h-9 relative">
                         <svg viewBox="0 0 240 282.3" className="w-full h-full">
@@ -220,10 +379,10 @@ export default function LoginPage() {
                         Sign Up
                     </Link>
                 </div>
-            </nav>
+            </motion.nav>
 
             {/* Hero Section */}
-            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-24 lg:pt-20 lg:pb-32 grid lg:grid-cols-2 gap-16 items-center">
+            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-24 lg:pt-20 lg:pb-32 grid lg:grid-cols-2 gap-32 lg:gap-16 items-center">
 
                 {/* Left Column: Copy - Staggered reveal with slide-in + parallax */}
                 <motion.div
@@ -265,16 +424,25 @@ export default function LoginPage() {
                                 <motion.svg
                                     viewBox="0 0 286 19"
                                     className="absolute -bottom-2 -left-2 w-[110%] h-auto z-0"
-                                    initial={{ pathLength: 0, opacity: 0 }}
-                                    animate={{ pathLength: 1, opacity: 1 }}
-                                    transition={{ duration: 1.5, delay: 1, ease: "easeInOut" }}
                                 >
-                                    <path
+                                    <motion.path
                                         d="M5 12 Q 143 5 281 12"
                                         stroke="url(#brushGradient)"
                                         strokeWidth="4"
                                         strokeLinecap="round"
                                         fill="none"
+                                        initial={{ pathLength: 0, opacity: 0 }}
+                                        animate={{
+                                            pathLength: [0, 1, 1],
+                                            opacity: [1, 1, 0]
+                                        }}
+                                        transition={{
+                                            duration: 3.5,
+                                            times: [0, 0.6, 1],
+                                            repeat: Infinity,
+                                            repeatDelay: 1,
+                                            ease: "easeInOut"
+                                        }}
                                     />
                                     <defs>
                                         <linearGradient id="brushGradient" x1="0" y1="0" x2="100%" y2="100%">
@@ -443,9 +611,22 @@ export default function LoginPage() {
                                     </div>
                                 </div>
                             </motion.div>
-                            <div className="mb-8 text-left md:text-center">
-                                <h2 className="text-2xl font-bold mb-2" style={{ color: '#1A1A1A' }}>Welcome to Notova</h2>
-                                <p className="text-sm" style={{ color: '#5A534B' }}>Enter your credentials to access your workspace</p>
+                            <div className="mb-6 text-left md:text-center pr-6 md:pr-0 relative z-10">
+                                {/* Brand Icon */}
+                                <div className="w-8 h-8 md:mx-auto mb-4 relative z-10">
+                                    <svg viewBox="0 0 240 282.3" className="w-full h-full drop-shadow-sm">
+                                        <defs>
+                                            <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor="var(--accent-primary)" />
+                                                <stop offset="100%" stopColor="var(--accent-secondary)" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path fill="url(#iconGradient)" d="M190.8,20.9l-23.8.2c-14.5,0-28.4,5.6-39,15.5l-93.5,98.1c-11.4,10.7-18,25.6-18.3,41.2l-.9,58.6c0,26.3,22.1,47.8,49.2,47.8h126.3c27.1,0,49.2-21.4,49.2-47.8V68.6c0-26.3-22.1-47.8-49.2-47.8ZM135.1,60.2c-14.5,13.6-17.4,33.4-17.4,51.1v16.2c0,4-3.5,7.2-7.8,7.2h-5.8c-19.2,0-40.6,2.3-55.4,15.6l86.4-90ZM220.3,234.5c0,15.5-13.2,28.1-29.5,28.1h-126.3c-16.3,0-29.5-12.6-29.5-28.1v-40.5s0,0,0,0v13.9c0-40.5,36.6-55.3,61.4-55.3h29.5c8.3,0,15-6.2,15-13.8v-30.7c0-41,25-67.3,49.3-67.3h4.5c14.4,1.8,25.6,13.6,25.6,27.8v165.9Z" />
+                                        <path fill="url(#iconGradient)" d="M48.2.5c6.6,26.1,21.7,42.6,48.9,48,.6.1.6,1,0,1.2-25,6.6-41.9,20.5-48.2,46.3-.2.6-1.1.6-1.2,0C41.6,70.5,26.6,55.2.5,50c-.7-.1-.7-1.1,0-1.2C26.4,42.6,41.8,27,47,.5c.1-.6,1-.7,1.2,0Z" />
+                                    </svg>
+                                </div>
+                                <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: '#1A1A1A' }}>Welcome to Notova</h2>
+                                <p className="text-base font-medium opacity-60" style={{ color: '#5A534B' }}>Enter your credentials to access your workspace</p>
                             </div>
 
                             <form onSubmit={handleLogin} className="space-y-5">
@@ -569,29 +750,28 @@ export default function LoginPage() {
             </main>
 
             {/* Features Preview Strip */}
-            <div className="relative z-10 border-t border-white/10 bg-[#1A1A1A]">
+            <div ref={themeStripRef} className="relative z-10 border-t border-white/10 bg-[#1A1A1A]">
                 {/* Custom Themes Carousel - Full Width Top Section */}
                 <div className="w-full py-8 relative overflow-hidden">
                     {/* Fade Gradients */}
                     <div className="absolute left-0 top-0 bottom-0 w-32 z-10 bg-linear-to-r from-[#1A1A1A] to-transparent pointer-events-none" />
                     <div className="absolute right-0 top-0 bottom-0 w-32 z-10 bg-linear-to-l from-[#1A1A1A] to-transparent pointer-events-none" />
 
-                    <div className="max-w-7xl mx-auto px-6 mb-6 relative z-20">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="max-w-7xl mx-auto px-6 mb-6 relative z-20"
+                    >
                         <span className="px-4 py-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 border border-white/10 rounded-full bg-white/5 backdrop-blur-sm">
                             Choose Your Aesthetic
                         </span>
-                    </div>
+                    </motion.div>
 
-                    <div className="flex">
+                    <div className="flex w-full overflow-x-auto md:overflow-hidden snap-x snap-mandatory scroll-smooth [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] no-scrollbar">
                         <motion.div
-                            className="flex gap-4 items-center pl-4"
-                            animate={{ x: ["0%", "-50%"] }}
-                            transition={{
-                                duration: 40,
-                                ease: "linear",
-                                repeat: Infinity,
-                                repeatType: "loop"
-                            }}
+                            style={{ x: themeStripX }}
+                            className="flex gap-4 items-center pl-4 animate-carousel hover:pause w-max"
                         >
                             {[
                                 { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
@@ -623,48 +803,12 @@ export default function LoginPage() {
                             ].map((themeOption, i) => {
                                 const isActive = mounted && theme === themeOption.name.toLowerCase()
                                 return (
-                                    <div
+                                    <ThemeCard
                                         key={i}
-                                        className="flex flex-col gap-2 group shrink-0 w-44 cursor-pointer"
+                                        theme={themeOption}
+                                        isActive={isActive || false}
                                         onClick={() => handleThemeSelect(themeOption.name)}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleThemeSelect(themeOption.name)}
-                                    >
-                                        <div
-                                            className={`w-full aspect-[4/3] rounded-lg shadow-xl shadow-black/30 relative overflow-hidden transition-all duration-500 group-hover:scale-[1.03] group-hover:shadow-black/50 ${themeOption.border ? 'border border-white/10' : ''} ${isActive ? 'ring-2 ring-offset-2 ring-offset-[#1A1A1A] ring-white/60 scale-[1.03]' : ''}`}
-                                            style={{ background: themeOption.bg }}
-                                        >
-                                            {/* Abstract UI Representation */}
-                                            <div className="absolute left-0 top-0 bottom-0 w-10 bg-black/5 backdrop-blur-[1px]" />
-                                            <div className="absolute top-3 left-0 right-0 h-px bg-black/5" />
-
-                                            {/* Floating Active Element */}
-                                            <div className="absolute right-2 bottom-2 w-5 h-5 rounded-md flex items-center justify-center shadow-md transform group-hover:-translate-y-0.5 transition-transform duration-500"
-                                                style={{ background: themeOption.accent }}>
-                                                <div className="w-2 h-2 rounded-sm bg-white/40" />
-                                            </div>
-
-                                            {/* Skeleton Text */}
-                                            <div className="absolute left-12 top-4 w-14 h-1 rounded-full opacity-10" style={{ background: themeOption.text }} />
-                                            <div className="absolute left-12 top-6 w-10 h-1 rounded-full opacity-10" style={{ background: themeOption.text }} />
-
-                                            <div className="absolute left-12 top-10 w-20 h-1 rounded-full opacity-5" style={{ background: themeOption.text }} />
-                                            <div className="absolute left-12 top-12 w-14 h-1 rounded-full opacity-5" style={{ background: themeOption.text }} />
-
-                                            {/* Active indicator checkmark */}
-                                            {isActive && (
-                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className={`text-[9px] font-bold text-center tracking-widest uppercase transition-opacity duration-300 ${isActive ? 'text-white opacity-100' : 'text-white/40 opacity-40 group-hover:opacity-100'}`}>
-                                            {themeOption.name}
-                                        </span>
-                                    </div>
+                                    />
                                 )
                             })}
 
@@ -717,68 +861,20 @@ export default function LoginPage() {
                             delay: 0.3
                         }
                     ].map((feature, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: feature.delay }}
-                            className="hover-3d w-full h-full group"
-                        >
-                            {/* Card Content - First child for hover-3d effect */}
-                            <div
-                                className="relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 group-hover:border-white/10 transition-colors duration-500"
-                            >
-                                {/* Hover Glow */}
-                                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
-
-                                <div className="relative z-10 flex flex-col h-full p-8">
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div
-                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-linear-to-br ${feature.gradient} shadow-lg shadow-black/20 transition-all duration-500 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-3 group-hover:shadow-xl`}
-                                        >
-                                            <feature.Icon className="text-black/80 drop-shadow-sm transition-transform duration-500 group-hover:scale-110" size={20} strokeWidth={2.5} />
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-xl font-bold text-white mb-3 tracking-wide">{feature.title}</h3>
-                                    <p className="text-white/50 leading-relaxed mb-8 text-sm font-medium">{feature.desc}</p>
-
-                                    {/* Image Container */}
-                                    <div className="mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-colors">
-                                        <Image
-                                            src={feature.img}
-                                            alt={feature.title}
-                                            fill
-                                            className="object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
-                                        />
-                                        {/* Overlay to ensure text readability if desired, or nice fade */}
-                                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                                    </div>
-                                </div>
-                            </div>
-                            {/* 8 empty divs for hover-3d effect zones */}
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </motion.div>
+                        <FeatureCard key={i} feature={feature} i={i} />
                     ))}
                 </div>
             </div>
 
             {/* Deep Dive / Pain Points Section */}
-            <section className="relative z-10 bg-[#FAF6EE] py-24 px-6 border-t border-[#E8E0D0] overflow-hidden">
+            <section ref={deepDiveRef} className="relative z-10 bg-[#FAF6EE] py-24 px-6 border-t border-[#E8E0D0] overflow-hidden">
                 <div className="max-w-7xl mx-auto">
-                    {/* Header with iPhone Mockup */}
-                    <div className="mb-20 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-12 lg:gap-8">
-                        {/* Left: Text Content */}
-                        <div className="max-w-3xl lg:max-w-xl xl:max-w-2xl">
+                    {/* Section Header */}
+                    <div className="mb-20 flex flex-col-reverse lg:grid lg:grid-cols-2 gap-12 items-center">
+                        <motion.div
+                            style={{ y: deepDiveTextY }}
+                            className="max-w-3xl"
+                        >
                             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#1A1A1A] mb-6 tracking-tight leading-tight">
                                 Built to fix the <br />
                                 <span className="gradient-text">problems you hate.</span>
@@ -787,72 +883,19 @@ export default function LoginPage() {
                                 We asked thousands of power users what frustrated them most about existing tools.
                                 Then we built the solutions directly into the core of Notova.
                             </p>
-                        </div>
+                        </motion.div>
 
-                        {/* Right: iPhone Mockup */}
                         <motion.div
-                            className="relative hidden md:flex items-center justify-center lg:justify-end flex-shrink-0"
-                            initial={{ opacity: 0, x: 50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            style={{ y: deepDiveLottieY }}
+                            className="w-full flex justify-center lg:justify-end"
                         >
-                            {/* Glow Effect Behind Phone */}
-                            <div
-                                className="absolute inset-0 -m-8 opacity-50 pointer-events-none blur-[60px] rounded-full"
-                                style={{
-                                    background: 'radial-gradient(ellipse at center, var(--accent-primary) 0%, var(--accent-secondary) 30%, transparent 70%)'
-                                }}
-                            />
-
-                            {/* iPhone Mockup */}
-                            <motion.div
-                                className="mockup-phone mockup-phone-lg mockup-phone-glow relative z-10"
-                                animate={{
-                                    y: [0, -10, 0],
-                                    rotate: [6, 8, 6]
-                                }}
-                                transition={{
-                                    duration: 4,
-                                    ease: "easeInOut",
-                                    repeat: Infinity
-                                }}
-                                style={{ transform: 'rotate(6deg)' }}
-                            >
-                                <div className="mockup-phone-camera"></div>
-                                <div className="mockup-phone-display">
-                                    {/* Video playing inside the phone - using img for webp animation */}
-                                    <img
-                                        src="/mockups/dashboard_mobile_demo.webp"
-                                        alt="Notova Dashboard Demo"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            </motion.div>
-
-                            {/* Floating decorative elements */}
-                            <motion.div
-                                className="absolute -top-6 -left-6 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
-                                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
-                                animate={{
-                                    y: [0, -8, 0],
-                                    rotate: [0, 10, 0]
-                                }}
-                                transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
-                            >
-                                <Sparkles size={20} className="text-white" />
-                            </motion.div>
-
-                            <motion.div
-                                className="absolute -bottom-4 -right-4 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-[#3B82F6]"
-                                animate={{
-                                    y: [0, 8, 0],
-                                    rotate: [0, -10, 0]
-                                }}
-                                transition={{ duration: 3.5, repeat: Infinity, delay: 1 }}
-                            >
-                                <Zap size={16} className="text-white" />
-                            </motion.div>
+                            <div className="w-full max-w-[600px] relative opacity-85">
+                                <DotLottieReact
+                                    src="https://lottie.host/bee0d611-7957-42a6-8378-11fe384a1f99/rOPasxa0fJ.lottie"
+                                    loop
+                                    autoplay
+                                />
+                            </div>
                         </motion.div>
                     </div>
 
@@ -860,17 +903,17 @@ export default function LoginPage() {
 
                         {/* 1. Import Feature - Col Span 7 (Large) */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="md:col-span-7 h-[400px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#F7D44C]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5"
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="md:col-span-7 h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#F7D44C]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--yellow"
                         >
-                            <div className="absolute inset-0 bg-linear-to-br from-[#F7D44C]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute inset-0 bg-linear-to-br from-[#F7D44C]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
 
                             {/* Import Visual */}
-                            <div className="w-full h-full absolute right-[-20%] bottom-[-20%] opacity-40 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[-10%] opacity-40 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
                                 {/* CSS File Stack */}
-                                <div className="relative w-64 h-80 transform rotate-12 translate-y-12">
+                                <div className="relative w-56 h-64 transform rotate-12">
                                     <div className="absolute inset-0 bg-[#F5F0E6] border border-[#E8E0D0] rounded-xl transform -rotate-6 translate-x-4 shadow-xl" />
                                     <div className="absolute inset-0 bg-[#FAF6EE] border border-[#E8E0D0] rounded-xl transform -rotate-3 translate-x-2 shadow-xl" />
                                     <div className="absolute inset-0 bg-white border border-[#F7D44C]/30 rounded-xl shadow-2xl flex flex-col p-6 space-y-4">
@@ -878,6 +921,27 @@ export default function LoginPage() {
                                         <div className="h-2 w-full bg-[#1A1A1A]/5 rounded-full" />
                                         <div className="h-2 w-5/6 bg-[#1A1A1A]/5 rounded-full" />
                                         <div className="h-2 w-4/6 bg-[#1A1A1A]/5 rounded-full" />
+                                        {/* Filetype Callouts - Now on the note */}
+                                        <div className="absolute top-4 right-4 z-30">
+                                            <div className="bg-white/90 backdrop-blur-sm border border-[#E8E0D0] shadow-md rounded-lg px-3 py-1.5 text-xs font-semibold text-[#7A7168] flex items-center gap-2 animate-float-slow">
+                                                <div className="w-2 h-2 rounded-full bg-[#10B981]" /> .enex
+                                            </div>
+                                        </div>
+                                        <div className="absolute top-16 right-4 z-30">
+                                            <div className="bg-white/90 backdrop-blur-sm border border-[#E8E0D0] shadow-md rounded-lg px-3 py-1.5 text-xs font-semibold text-[#7A7168] flex items-center gap-2 animate-float-delayed">
+                                                <div className="w-2 h-2 rounded-full bg-[#3B82F6]" /> .docx
+                                            </div>
+                                        </div>
+                                        <div className="absolute bottom-16 right-4 z-30">
+                                            <div className="bg-white/90 backdrop-blur-sm border border-[#E8E0D0] shadow-md rounded-lg px-3 py-1.5 text-xs font-semibold text-[#7A7168] flex items-center gap-2 animate-float-slower">
+                                                <div className="w-2 h-2 rounded-full bg-[#EF4444]" /> .pdf
+                                            </div>
+                                        </div>
+                                        <div className="absolute bottom-4 right-4 z-30">
+                                            <div className="bg-white/90 backdrop-blur-sm border border-[#E8E0D0] shadow-md rounded-lg px-3 py-1.5 text-xs font-semibold text-[#7A7168] flex items-center gap-2 animate-float">
+                                                <div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> .txt
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -899,20 +963,19 @@ export default function LoginPage() {
 
                         {/* 2. AI Feature - Col Span 5 */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.1 }}
-                            className="md:col-span-5 h-[400px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#7a9a65]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5"
+                            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                            className="md:col-span-5 h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#7a9a65]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--green"
                         >
-                            <div className="absolute inset-0 bg-linear-to-bl from-[#7a9a65]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute inset-0 bg-linear-to-bl from-[#7a9a65]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
 
                             {/* AI Visual */}
                             <div className="w-full h-full absolute right-[-10%] bottom-[-10%] opacity-20 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-                                <div className="relative w-full h-full transform flex items-center justify-center translate-y-12 translate-x-12">
-                                    <div className="absolute w-48 h-64 bg-[#7a9a65]/5 border border-[#7a9a65]/20 rounded-2xl transform rotate-12 translate-x-8" />
-                                    <div className="absolute w-48 h-64 bg-[#7a9a65]/10 border border-[#7a9a65]/20 rounded-2xl transform rotate-6 translate-x-4" />
-                                    <div className="absolute w-48 h-64 bg-white border border-[#7a9a65]/30 rounded-2xl shadow-2xl flex flex-col p-6 space-y-3 transform -rotate-3">
+                                <div className="relative w-full h-full transform flex items-center justify-center translate-y-8 translate-x-8">
+                                    <div className="absolute w-44 h-56 bg-[#7a9a65]/5 border border-[#7a9a65]/20 rounded-2xl transform rotate-12 translate-x-8" />
+                                    <div className="absolute w-44 h-56 bg-[#7a9a65]/10 border border-[#7a9a65]/20 rounded-2xl transform rotate-6 translate-x-4" />
+                                    <div className="absolute w-44 h-56 bg-white border border-[#7a9a65]/30 rounded-2xl shadow-2xl flex flex-col p-5 space-y-2.5 transform -rotate-3">
                                         <div className="flex items-center gap-2 mb-2">
                                             <div className="w-2 h-2 rounded-full bg-[#7a9a65]" />
                                             <div className="h-2 w-16 bg-[#1A1A1A]/5 rounded-full" />
@@ -957,13 +1020,12 @@ export default function LoginPage() {
 
                         {/* 3. Smart Search & Filters - Full Width Bottom */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.2 }}
-                            className="md:col-span-12 min-h-[300px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#3B82F6]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 flex flex-col md:flex-row items-center"
+                            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+                            className="md:col-span-12 min-h-[300px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#3B82F6]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 flex flex-col md:flex-row items-center feature-card-blob feature-card-blob--blue"
                         >
-                            <div className="absolute inset-0 bg-linear-to-r from-[#3B82F6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute inset-0 bg-linear-to-r from-[#3B82F6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
 
                             <div className="p-10 md:w-1/2 flex flex-col justify-center relative z-10">
                                 <div className="inline-flex content-center self-start items-center gap-2 px-3 py-1 rounded-full bg-[#3B82F6]/10 text-[#3B82F6] text-xs font-bold uppercase tracking-wider mb-4">
@@ -1000,19 +1062,28 @@ export default function LoginPage() {
             </section>
 
             {/* Final Call to Action */}
-            <section className="relative z-10 py-24 px-6 overflow-hidden bg-[#1A1A1A]">
+            <section ref={ctaRef} className="relative z-10 py-24 px-6 overflow-hidden bg-[#1A1A1A]">
                 {/* Background Glow */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[100px] opacity-40"
                         style={{ background: 'radial-gradient(circle, var(--accent-primary) 0%, transparent 70%)' }} />
+
+                    {/* Ripple Waves - 3D Touch Effect */}
+                    <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-1"
+                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(232, 120, 58, 0.4)' }} />
+                    <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-2"
+                        style={{ borderColor: 'var(--accent-secondary)', boxShadow: '0 0 40px rgba(232, 154, 74, 0.4)' }} />
+                    <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-3"
+                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(232, 120, 58, 0.3)' }} />
                 </div>
 
                 <div className="max-w-4xl mx-auto relative z-10 text-center">
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
+                        style={{
+                            scale: ctaScale,
+                            opacity: ctaOpacity,
+                            y: ctaTextY
+                        }}
                     >
                         <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-[1.1]">
                             Your best ideas <br />
@@ -1046,7 +1117,11 @@ export default function LoginPage() {
             </section>
 
             {/* Footer */}
-            <footer className="bg-[#1A1A1A] py-8 border-t border-white/5 relative z-10">
+            <motion.footer
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                className="bg-[#1A1A1A] py-8 border-t border-white/5 relative z-10"
+            >
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[#7A7168] text-sm">
                     <p>© 2026 Notova Inc. All rights reserved.</p>
                     <div className="flex gap-6">
@@ -1055,7 +1130,7 @@ export default function LoginPage() {
                         <a href="#" className="hover:text-white transition-colors">Cookies</a>
                     </div>
                 </div>
-            </footer>
+            </motion.footer>
         </div>
     )
 }
