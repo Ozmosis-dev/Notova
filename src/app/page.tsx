@@ -37,11 +37,18 @@ export default function Home() {
 
   // Optimized hooks with SWR caching
   // When showing notebooks view, fetch all notes (not filtered by notebook) for previews
-  const { notebooks, tags, notes, loading: appDataLoading, refetch: refetchAppData } = useAppData({
+  const { notebooks, tags, notes, trashCount: appTrashCount, loading: appDataLoading, refetch: refetchAppData } = useAppData({
     notebookId: showNotebooksView ? null : selectedNotebookId,
     tagId: selectedTagId,
     isTrash: showTrash,
   });
+
+  // Sync trashCount from SWR cache (eliminates the separate /api/notes?isTrash=true fetch)
+  useEffect(() => {
+    if (appTrashCount !== undefined) {
+      setTrashCount(appTrashCount);
+    }
+  }, [appTrashCount]);
 
   const { refetchAll, optimisticUpdateNote, optimisticAddNote, optimisticAddNotebook, optimisticUpdateNotebook } = useAppDataMutations();
   const { createNotebook, deleteNotebook, loading: creatingNotebook } = useNotebookActions();
@@ -405,24 +412,8 @@ export default function Home() {
     }
   }, [refetchAppData, selectedNoteId]);
 
-  // Fetch trash count - as a reusable callback
-  const fetchTrashCount = useCallback(async () => {
-    try {
-      const response = await fetch('/api/notes?isTrash=true');
-      if (response.ok) {
-        const data = await response.json();
-        // Use pagination.total for accurate count (notes.length is limited by page size)
-        setTrashCount(data.pagination?.total ?? data.notes?.length ?? 0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch trash count:', error);
-    }
-  }, []);
-
-  // Fetch trash count on initial load only (optimistic updates handle changes)
-  useEffect(() => {
-    fetchTrashCount();
-  }, [fetchTrashCount]);
+  // Trash count is now sourced from useAppData (included in /api/app-data response)
+  // Local setTrashCount calls above provide optimistic updates between SWR revalidations
 
   // Note: We no longer auto-select the first note to allow full panel view by default
 

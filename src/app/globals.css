@@ -1670,15 +1670,74 @@ input:-webkit-autofill:active {
   }
 }
 
-@media (min-width: 768px) {
-  .animate-carousel {
-    animation: carousel-scroll 60s linear infinite;
-    /* Ensure hardware acceleration for smoother animation */
-    will-change: transform;
+@keyframes carousel-scroll-reverse {
+  from {
+    transform: translateX(-50%);
   }
 
-  .animate-carousel:hover {
-    animation-play-state: paused;
-    /* Pause on hover */
+  to {
+    transform: translateX(0);
   }
+}
+
+.animate-carousel {
+  animation: carousel-scroll 60s linear infinite;
+  will-change: transform;
+}
+
+.animate-carousel-reverse {
+  animation: carousel-scroll-reverse 65s linear infinite;
+  will-change: transform;
+}
+
+/* Mobile: use swipeable snap scrolling instead of infinite auto-scroll */
+@media (max-width: 767px) {
+
+  .animate-carousel,
+  .animate-carousel-reverse {
+    animation: mobile-carousel-hint 1.2s ease-in-out 0.5s 1 forwards;
+  }
+}
+
+/* Nudge animation to hint there are more cards */
+@keyframes mobile-carousel-hint {
+  0% {
+    transform: translateX(0);
+  }
+
+  40% {
+    transform: translateX(-40px);
+  }
+
+  70% {
+    transform: translateX(10px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-carousel:hover,
+.animate-carousel-reverse:hover {
+  animation-play-state: paused;
+}
+
+/* ================================================================
+   Scroll-to-Top Bounce Arrow
+   ================================================================ */
+@keyframes gentle-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
 }

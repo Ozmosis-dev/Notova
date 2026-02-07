@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, Variants, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail } from 'lucide-react'
+import { motion, Variants, useScroll, useTransform, useInView } from 'framer-motion'
+import { ArrowRight, Sparkles, Zap, FileText, Brain, Wifi, Search, Tag, Palette, FileDown, Mail, ChevronUp } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeKey } from '@/lib/themes'
 import { ThemeCard } from '@/components/ui/ThemeCard'
@@ -112,13 +112,27 @@ const floatingSlowVariants = {
     }
 }
 
+// Hook to detect if device is mobile (used to disable heavy scroll animations)
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 768px)');
+        setIsMobile(mq.matches);
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+    return isMobile;
+};
+
 // Hook to detect if element is in center of viewport for mobile scroll animations
-const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement | null>) => {
+const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement | null>, disabled?: boolean) => {
     const [isActive, setIsActive] = useState(false);
     const internalRef = useRef<HTMLDivElement>(null);
     const ref = providedRef || internalRef;
 
     useEffect(() => {
+        if (disabled) return;
         const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
@@ -142,40 +156,48 @@ const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement | null>) =
                 observer.unobserve(ref.current);
             }
         };
-    }, [ref]);
+    }, [ref, disabled]);
 
-    return { ref, isActive };
+    return { ref, isActive: disabled ? false : isActive };
 };
 
 
 
 // Separate component for Feature Card to use hooks
-const FeatureCard = ({ feature, i }: { feature: any, i: number }) => {
-    // Scroll-linked scale effect
+const FeatureCard = ({ feature, i, isMobile }: { feature: any, i: number, isMobile: boolean }) => {
+    // Scroll-linked scale effect (disabled on mobile for performance)
     const cardRef = useRef<HTMLDivElement>(null);
-    const { isActive } = useScrollActive(cardRef);
+    const { isActive } = useScrollActive(cardRef, isMobile);
     const { scrollYProgress } = useScroll({
         target: cardRef,
         offset: ["start end", "end start"]
     });
 
-    // Scale up slightly as it moves into view
-    const scaleShow = useTransform(scrollYProgress, [0, 0.5, 1], [0.92, 1, 0.92]);
-    const opacityShow = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-    const yParallax = useTransform(scrollYProgress, [0, 1], [50, -50]);
+    // Scale up slightly as it moves into view — static on mobile
+    const scaleShow = useTransform(scrollYProgress, [0, 0.5, 1], isMobile ? [1, 1, 1] : [0.92, 1, 0.92]);
+    const opacityShow = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], isMobile ? [1, 1, 1, 1] : [0, 1, 1, 0]);
+    const yParallax = useTransform(scrollYProgress, [0, 1], isMobile ? [0, 0] : [50, -50]);
 
-    // Staggered parallax based on index (odd/even)
-    const yOffset = i % 2 === 0 ? yParallax : useTransform(scrollYProgress, [0, 1], [20, -20]);
+    // Staggered parallax based on index (odd/even) — disabled on mobile
+    // Always call useTransform to satisfy React Rules of Hooks
+    const yParallaxAlt = useTransform(scrollYProgress, [0, 1], isMobile ? [0, 0] : [20, -20]);
+    const yOffset = isMobile ? yParallax : (i % 2 === 0 ? yParallax : yParallaxAlt);
 
     return (
         <motion.div
             ref={cardRef}
             key={i}
-            style={{
+            style={isMobile ? undefined : {
                 scale: scaleShow,
                 opacity: opacityShow,
                 y: yOffset
             }}
+            {...(isMobile ? {
+                initial: { opacity: 0, y: 20 },
+                whileInView: { opacity: 1, y: 0 },
+                viewport: { once: true, amount: 0.2 },
+                transition: { duration: 0.4, ease: "easeOut" }
+            } : {})}
             className={`hover-3d w-full h-full group ${isActive ? 'mobile-hover' : ''}`}
         >
             {/* Card Content - First child for hover-3d effect */}
@@ -224,26 +246,61 @@ const FeatureCard = ({ feature, i }: { feature: any, i: number }) => {
     );
 };
 
+// Scroll-to-Top Arrow — appears when the carousel section is in view
+const ScrollToTopArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) => {
+    const isInView = useInView(containerRef, { amount: 0.3 })
+    const [dismissed, setDismissed] = React.useState(false)
+
+    // Reset dismissed state when the section leaves and re-enters view
+    React.useEffect(() => {
+        if (!isInView) setDismissed(false)
+    }, [isInView])
+
+    const handleClick = () => {
+        setDismissed(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    if (!isInView || dismissed) return null
+
+    return (
+        <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.4 }}
+            onClick={handleClick}
+            className="mx-auto mt-6 flex flex-col items-center gap-1 text-white/30 hover:text-white/60 transition-colors duration-300 cursor-pointer"
+            aria-label="Scroll to top"
+        >
+            <div className="animate-gentle-bounce">
+                <ChevronUp className="w-5 h-5" />
+            </div>
+            <span className="text-[9px] tracking-[0.15em] uppercase font-medium">Back to top</span>
+        </motion.button>
+    )
+}
+
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const isMobile = useIsMobile()
     const router = useRouter()
     const supabase = createClient()
     const { theme, setTheme } = useTheme()
 
-    // Scroll-based parallax for dimensional hero effect
-    // Scroll-based parallax for dimensional hero effect
+    // Scroll-based parallax for dimensional hero effect (disabled on mobile)
     const { scrollY } = useScroll()
-    const heroTextY = useTransform(scrollY, [0, 500], [0, 100])
-    const heroCardY = useTransform(scrollY, [0, 500], [0, -50])
-    const heroBadgeY = useTransform(scrollY, [0, 500], [0, 150])
+    const heroTextY = useTransform(scrollY, [0, 500], isMobile ? [0, 0] : [0, 30])
+    const heroCardY = useTransform(scrollY, [0, 500], isMobile ? [0, 0] : [0, -15])
+    const heroBadgeY = useTransform(scrollY, [0, 500], isMobile ? [0, 0] : [0, 40])
 
-    // Background blobs parallax
-    const blob1Y = useTransform(scrollY, [0, 1000], [0, 300])
-    const blob2Y = useTransform(scrollY, [0, 1000], [0, -200])
+    // Background blobs parallax (disabled on mobile)
+    const blob1Y = useTransform(scrollY, [0, 1000], isMobile ? [0, 0] : [0, 300])
+    const blob2Y = useTransform(scrollY, [0, 1000], isMobile ? [0, 0] : [0, -200])
 
     // Theme strip parallax
     const themeStripRef = useRef(null)
@@ -251,7 +308,7 @@ export default function LoginPage() {
         target: themeStripRef,
         offset: ["start end", "end start"]
     })
-    const themeStripX = useTransform(themeScrollProgress, [0, 1], [0, -50])
+    const themeStripX = useTransform(themeScrollProgress, [0, 1], isMobile ? [0, 0] : [0, -50])
 
     // Deep Dive Section Parallax
     const deepDiveRef = useRef(null)
@@ -260,8 +317,8 @@ export default function LoginPage() {
         offset: ["start end", "end start"]
     })
 
-    const deepDiveTextY = useTransform(deepDiveProgress, [0, 1], [100, -100])
-    const deepDiveLottieY = useTransform(deepDiveProgress, [0, 1], [50, -50])
+    const deepDiveTextY = useTransform(deepDiveProgress, [0, 1], isMobile ? [0, 0] : [40, -40])
+    const deepDiveLottieY = useTransform(deepDiveProgress, [0, 1], isMobile ? [0, 0] : [20, -20])
 
     // CTA Section Parallax
     const ctaRef = useRef(null)
@@ -270,9 +327,9 @@ export default function LoginPage() {
         offset: ["start end", "end start"]
     })
 
-    const ctaTextY = useTransform(ctaProgress, [0.2, 0.8], [50, -50])
-    const ctaScale = useTransform(ctaProgress, [0.2, 0.5], [0.9, 1])
-    const ctaOpacity = useTransform(ctaProgress, [0.1, 0.4], [0, 1])
+    const ctaTextY = useTransform(ctaProgress, [0.2, 0.8], isMobile ? [0, 0] : [50, -50])
+    const ctaScale = useTransform(ctaProgress, [0.2, 0.5], isMobile ? [1, 1] : [0.9, 1])
+    const ctaOpacity = useTransform(ctaProgress, [0.1, 0.4], isMobile ? [1, 1] : [0, 1])
 
     // Set warm theme as default for login page on first visit only
     useEffect(() => {
@@ -362,9 +419,10 @@ export default function LoginPage() {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => document.getElementById('login-card')?.scrollIntoView({ behavior: 'smooth' })}
-                        className="md:hidden px-5 py-2.5 rounded-full font-bold text-sm text-white shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+                        className="md:hidden px-5 py-2.5 rounded-full font-bold text-sm text-white shadow-lg active:scale-95 transition-all"
                         style={{
-                            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
+                            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                            boxShadow: '0 10px 15px -3px var(--accent-glow-soft)'
                         }}
                     >
                         Sign In
@@ -395,12 +453,13 @@ export default function LoginPage() {
                     {/* Badge with slide + fade */}
                     <motion.div
                         variants={slideInLeftVariants}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-md shadow-orange-500/10 cursor-default"
-                        whileHover={{ scale: 1.05, boxShadow: "0 8px 25px -5px rgba(232, 120, 58, 0.3)" }}
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-md cursor-default"
+                        whileHover={{ scale: 1.05, boxShadow: "0 8px 25px -5px var(--accent-glow)" }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         style={{
                             background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                            color: '#FFFFFF'
+                            color: '#FFFFFF',
+                            boxShadow: '0 4px 6px -1px var(--accent-glow-soft)'
                         }}>
                         <motion.div
                             animate={{ rotate: [0, 15, -15, 0] }}
@@ -754,24 +813,26 @@ export default function LoginPage() {
                 {/* Custom Themes Carousel - Full Width Top Section */}
                 <div className="w-full py-8 relative overflow-hidden">
                     {/* Fade Gradients */}
-                    <div className="absolute left-0 top-0 bottom-0 w-32 z-10 bg-linear-to-r from-[#1A1A1A] to-transparent pointer-events-none" />
-                    <div className="absolute right-0 top-0 bottom-0 w-32 z-10 bg-linear-to-l from-[#1A1A1A] to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-linear-to-r from-[#1A1A1A] to-transparent pointer-events-none" />
+                    <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-linear-to-l from-[#1A1A1A] to-transparent pointer-events-none" />
 
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="max-w-7xl mx-auto px-6 mb-6 relative z-20"
+                        className="max-w-7xl mx-auto px-6 mb-6 relative z-20 flex md:block items-center justify-center"
                     >
                         <span className="px-4 py-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 border border-white/10 rounded-full bg-white/5 backdrop-blur-sm">
-                            Choose Your Aesthetic
+                            <span className="md:hidden">Choose Your Theme</span>
+                            <span className="hidden md:inline">Choose Your Aesthetic</span>
                         </span>
                     </motion.div>
 
+                    {/* Row 1 — Scrolls Left */}
                     <div className="flex w-full overflow-x-auto md:overflow-hidden snap-x snap-mandatory scroll-smooth [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] no-scrollbar">
                         <motion.div
                             style={{ x: themeStripX }}
-                            className="flex gap-4 items-center pl-4 animate-carousel hover:pause w-max"
+                            className="flex gap-3 md:gap-4 items-center pl-4 animate-carousel w-max"
                         >
                             {[
                                 { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
@@ -782,7 +843,7 @@ export default function LoginPage() {
                                 { name: 'Spring', bg: '#FFE5EC', accent: '#FF8FAB', text: '#881337' },
                                 { name: 'Midnight', bg: '#1A0F2E', accent: '#A78BFA', text: '#C4B5FD', border: true },
                                 { name: 'Autumn', bg: '#6B2D2D', accent: '#D84315', text: '#FFF5F0' },
-                                // Duplicate for loop
+                                // Duplicate for seamless loop
                                 { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
                                 { name: 'Dark', bg: '#000000', accent: '#EAB308', text: '#FFFFFF', border: true },
                                 { name: 'Warm', bg: '#1A1A1A', accent: '#E8783A', text: '#F5ECD7' },
@@ -804,16 +865,65 @@ export default function LoginPage() {
                                 const isActive = mounted && theme === themeOption.name.toLowerCase()
                                 return (
                                     <ThemeCard
-                                        key={i}
+                                        key={`r1-${i}`}
                                         theme={themeOption}
                                         isActive={isActive || false}
                                         onClick={() => handleThemeSelect(themeOption.name)}
+                                        compact
                                     />
                                 )
                             })}
-
                         </motion.div>
                     </div>
+
+                    {/* Row 2 — Scrolls Right (offset order) */}
+                    <div className="flex w-full overflow-x-auto md:overflow-hidden snap-x snap-mandatory scroll-smooth [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] no-scrollbar mt-3 md:mt-4">
+                        <div className="flex gap-3 md:gap-4 items-center pl-4 animate-carousel-reverse w-max">
+                            {[
+                                // Offset order — starts at Earth for visual variety
+                                { name: 'Earth', bg: '#4A5D4A', accent: '#6B8E5A', text: '#F5ECD7' },
+                                { name: 'Midnight', bg: '#1A0F2E', accent: '#A78BFA', text: '#C4B5FD', border: true },
+                                { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
+                                { name: 'Autumn', bg: '#6B2D2D', accent: '#D84315', text: '#FFF5F0' },
+                                { name: 'Cool', bg: '#0F172A', accent: '#3B82F6', text: '#94A3B8' },
+                                { name: 'Spring', bg: '#FFE5EC', accent: '#FF8FAB', text: '#881337' },
+                                { name: 'Dark', bg: '#000000', accent: '#EAB308', text: '#FFFFFF', border: true },
+                                { name: 'Warm', bg: '#1A1A1A', accent: '#E8783A', text: '#F5ECD7' },
+                                // Duplicate for seamless loop
+                                { name: 'Earth', bg: '#4A5D4A', accent: '#6B8E5A', text: '#F5ECD7' },
+                                { name: 'Midnight', bg: '#1A0F2E', accent: '#A78BFA', text: '#C4B5FD', border: true },
+                                { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
+                                { name: 'Autumn', bg: '#6B2D2D', accent: '#D84315', text: '#FFF5F0' },
+                                { name: 'Cool', bg: '#0F172A', accent: '#3B82F6', text: '#94A3B8' },
+                                { name: 'Spring', bg: '#FFE5EC', accent: '#FF8FAB', text: '#881337' },
+                                { name: 'Dark', bg: '#000000', accent: '#EAB308', text: '#FFFFFF', border: true },
+                                { name: 'Warm', bg: '#1A1A1A', accent: '#E8783A', text: '#F5ECD7' },
+                                // Third set
+                                { name: 'Earth', bg: '#4A5D4A', accent: '#6B8E5A', text: '#F5ECD7' },
+                                { name: 'Midnight', bg: '#1A0F2E', accent: '#A78BFA', text: '#C4B5FD', border: true },
+                                { name: 'Light', bg: '#FAF6EE', accent: '#E8783A', text: '#4B4B4B' },
+                                { name: 'Autumn', bg: '#6B2D2D', accent: '#D84315', text: '#FFF5F0' },
+                                { name: 'Cool', bg: '#0F172A', accent: '#3B82F6', text: '#94A3B8' },
+                                { name: 'Spring', bg: '#FFE5EC', accent: '#FF8FAB', text: '#881337' },
+                                { name: 'Dark', bg: '#000000', accent: '#EAB308', text: '#FFFFFF', border: true },
+                                { name: 'Warm', bg: '#1A1A1A', accent: '#E8783A', text: '#F5ECD7' },
+                            ].map((themeOption, i) => {
+                                const isActive = mounted && theme === themeOption.name.toLowerCase()
+                                return (
+                                    <ThemeCard
+                                        key={`r2-${i}`}
+                                        theme={themeOption}
+                                        isActive={isActive || false}
+                                        onClick={() => handleThemeSelect(themeOption.name)}
+                                        compact
+                                    />
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Scroll-to-Top Arrow */}
+                    <ScrollToTopArrow containerRef={themeStripRef} />
                 </div>
 
                 <div className="max-w-7xl mx-auto px-6 pb-24 pt-0 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -861,7 +971,7 @@ export default function LoginPage() {
                             delay: 0.3
                         }
                     ].map((feature, i) => (
-                        <FeatureCard key={i} feature={feature} i={i} />
+                        <FeatureCard key={i} feature={feature} i={i} isMobile={isMobile} />
                     ))}
                 </div>
             </div>
@@ -903,15 +1013,16 @@ export default function LoginPage() {
 
                         {/* 1. Import Feature - Col Span 7 (Large) */}
                         <motion.div
-                            initial={{ opacity: 0, y: 50 }}
+                            initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="md:col-span-7 h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#F7D44C]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--yellow"
+                            viewport={{ once: true, amount: 0.1 }}
+                            transition={isMobile ? { duration: 0 } : { duration: 0.8, ease: "easeOut" }}
+                            className="md:col-span-7 h-[480px] md:h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#F7D44C]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--yellow"
                         >
                             <div className="absolute inset-0 bg-linear-to-br from-[#F7D44C]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
 
                             {/* Import Visual */}
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[-10%] opacity-40 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
+                            <div className="absolute right-0 bottom-0 translate-x-[-5%] translate-y-[10%] opacity-40 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
                                 {/* CSS File Stack */}
                                 <div className="relative w-56 h-64 transform rotate-12">
                                     <div className="absolute inset-0 bg-[#F5F0E6] border border-[#E8E0D0] rounded-xl transform -rotate-6 translate-x-4 shadow-xl" />
@@ -954,8 +1065,7 @@ export default function LoginPage() {
                                     </div>
                                     <h3 className="text-3xl font-bold text-[#1A1A1A]">Left behind? Never.</h3>
                                     <p className="text-[#7A7168] text-lg">
-                                        Import your entire <strong>.enex</strong> library in seconds.
-                                        All your tags, dates, and formatting are preserved perfectly.
+                                        Import your entire <strong>.enex</strong> notebooks, as well as <strong>PDF</strong>, <strong>Word</strong>, <strong>TXT</strong>, and other file types with full support.
                                     </p>
                                 </div>
                             </div>
@@ -963,10 +1073,11 @@ export default function LoginPage() {
 
                         {/* 2. AI Feature - Col Span 5 */}
                         <motion.div
-                            initial={{ opacity: 0, y: 50 }}
+                            initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                            className="md:col-span-5 h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#7a9a65]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--green"
+                            viewport={{ once: true, amount: 0.1 }}
+                            transition={isMobile ? { duration: 0 } : { duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                            className="md:col-span-5 h-[440px] md:h-[360px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#7a9a65]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 feature-card-blob feature-card-blob--green"
                         >
                             <div className="absolute inset-0 bg-linear-to-bl from-[#7a9a65]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
 
@@ -1020,9 +1131,10 @@ export default function LoginPage() {
 
                         {/* 3. Smart Search & Filters - Full Width Bottom */}
                         <motion.div
-                            initial={{ opacity: 0, y: 50 }}
+                            initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+                            viewport={{ once: true, amount: 0.1 }}
+                            transition={isMobile ? { duration: 0 } : { duration: 0.8, delay: 0.1, ease: "easeOut" }}
                             className="md:col-span-12 min-h-[300px] group relative rounded-3xl bg-white border border-[#E8E0D0] overflow-hidden hover:border-[#3B82F6]/30 transition-all duration-500 shadow-xl shadow-[#1E140A]/5 flex flex-col md:flex-row items-center feature-card-blob feature-card-blob--blue"
                         >
                             <div className="absolute inset-0 bg-linear-to-r from-[#3B82F6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-[2]" />
@@ -1070,11 +1182,11 @@ export default function LoginPage() {
 
                     {/* Ripple Waves - 3D Touch Effect */}
                     <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-1"
-                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(232, 120, 58, 0.4)' }} />
+                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px color-mix(in srgb, var(--accent-primary) 40%, transparent)' }} />
                     <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-2"
-                        style={{ borderColor: 'var(--accent-secondary)', boxShadow: '0 0 40px rgba(232, 154, 74, 0.4)' }} />
+                        style={{ borderColor: 'var(--accent-secondary)', boxShadow: '0 0 40px color-mix(in srgb, var(--accent-secondary) 40%, transparent)' }} />
                     <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full border-2 opacity-40 blur-md animate-ripple-wave-3"
-                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px rgba(232, 120, 58, 0.3)' }} />
+                        style={{ borderColor: 'var(--accent-primary)', boxShadow: '0 0 40px color-mix(in srgb, var(--accent-primary) 30%, transparent)' }} />
                 </div>
 
                 <div className="max-w-4xl mx-auto relative z-10 text-center">
@@ -1098,8 +1210,17 @@ export default function LoginPage() {
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
                             <Link href="/signup"
-                                className="group px-8 py-4 rounded-full font-bold text-[#1A1A1A] text-lg shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-105 transition-all duration-300 flex items-center gap-2"
-                                style={{ background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)' }}
+                                className="group px-8 py-4 rounded-full font-bold text-[#1A1A1A] text-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                                style={{
+                                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                                    boxShadow: '0 20px 25px -5px color-mix(in srgb, var(--accent-primary) 20%, transparent)',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 20px 25px -5px color-mix(in srgb, var(--accent-primary) 40%, transparent)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 20px 25px -5px color-mix(in srgb, var(--accent-primary) 20%, transparent)';
+                                }}
                             >
                                 Get Started Free
                                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -1108,7 +1229,7 @@ export default function LoginPage() {
                             <a href="mailto:contact@notova.app"
                                 className="px-8 py-4 rounded-full font-bold text-white text-lg border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300 flex items-center gap-3 backdrop-blur-sm"
                             >
-                                <Mail size={20} className="text-[#E8783A]" />
+                                <Mail size={20} style={{ color: 'var(--accent-primary)' }} />
                                 Questions?
                             </a>
                         </div>
@@ -1118,8 +1239,10 @@ export default function LoginPage() {
 
             {/* Footer */}
             <motion.footer
-                initial={{ opacity: 0, y: 50 }}
+                initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={isMobile ? { duration: 0 } : undefined}
                 className="bg-[#1A1A1A] py-8 border-t border-white/5 relative z-10"
             >
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[#7A7168] text-sm">

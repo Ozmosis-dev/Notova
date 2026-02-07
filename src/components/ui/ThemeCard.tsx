@@ -13,9 +13,10 @@ interface ThemeCardProps {
     theme: ThemeOption;
     isActive: boolean;
     onClick: () => void;
+    compact?: boolean;
 }
 
-export const ThemeCard = ({ theme, isActive, onClick }: ThemeCardProps) => {
+export const ThemeCard = ({ theme, isActive, onClick, compact = false }: ThemeCardProps) => {
     const ref = useRef<HTMLDivElement>(null);
 
     // Mouse position values
@@ -62,7 +63,7 @@ export const ThemeCard = ({ theme, isActive, onClick }: ThemeCardProps) => {
             style={{
                 perspective: 800, // Reduced perspective for less distortion
             }}
-            className="group shrink-0 w-44 cursor-pointer snap-center"
+            className={`group shrink-0 cursor-pointer snap-center ${compact ? 'w-28 md:w-44' : 'w-44'}`}
             onClick={onClick}
             role="button"
             tabIndex={0}
@@ -133,8 +134,8 @@ export const ThemeCard = ({ theme, isActive, onClick }: ThemeCardProps) => {
 
             </motion.div>
 
-            <div className="mt-3 text-center relative transition-all duration-300 group-hover:translate-y-0.5">
-                <span className={`text-[11px] font-medium tracking-widest uppercase transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'}`}>
+            <div className={`text-center relative transition-all duration-300 group-hover:translate-y-0.5 ${compact ? 'mt-1.5' : 'mt-3'}`}>
+                <span className={`font-medium tracking-widest uppercase transition-colors duration-300 ${compact ? 'text-[9px] md:text-[11px]' : 'text-[11px]'} ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'}`}>
                     {theme.name}
                 </span>
                 {isActive && (

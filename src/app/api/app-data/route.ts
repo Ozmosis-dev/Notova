@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         const isTrash = searchParams.get('isTrash') === 'true';
 
         // Execute all queries in parallel for maximum performance
-        const [notebooks, tags, notes] = await Promise.all([
+        const [notebooks, tags, notes, trashCount] = await Promise.all([
             // Fetch notebooks with note counts
             prisma.notebook.findMany({
                 where: { userId },
@@ -136,6 +136,11 @@ export async function GET(request: NextRequest) {
                     take: 50, // Limit initial load for performance
                 });
             })(),
+
+            // Count trashed notes (for sidebar badge)
+            prisma.note.count({
+                where: { notebook: { userId }, isTrash: true },
+            }),
         ]);
 
         // Smart Cleanup: Remove "My Notes" default notebook if user has created other notebooks
@@ -281,6 +286,7 @@ export async function GET(request: NextRequest) {
             notebooks: transformedNotebooks,
             tags: transformedTags,
             notes: transformedNotes,
+            trashCount,
         });
     } catch (error) {
         console.error('Error fetching app data:', error);

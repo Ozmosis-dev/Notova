@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
    */
   experimental: {
     // Enable optimized image loading
-    optimizePackageImports: ['@tiptap/react', '@tiptap/extension-*', 'lucide-react'],
+    optimizePackageImports: ['@tiptap/react', '@tiptap/extension-*', 'lucide-react', 'framer-motion'],
   },
 
   /**

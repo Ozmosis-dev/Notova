@@ -48,6 +48,7 @@ interface AppData {
     notebooks: Notebook[];
     tags: Tag[];
     notes: NotePreview[];
+    trashCount: number;
 }
 
 // SWR fetcher with error handling
@@ -118,10 +119,13 @@ export function useAppData(options: AppDataOptions = {}) {
     const tags = useMemo(() => data?.tags ?? [], [data?.tags]);
     const notes = useMemo(() => data?.notes ?? [], [data?.notes]);
 
+    const trashCount = useMemo(() => data?.trashCount ?? 0, [data?.trashCount]);
+
     return {
         notebooks,
         tags,
         notes,
+        trashCount,
         loading: isLoading,
         validating: isValidating,
         error: error || null,
@@ -173,7 +177,7 @@ export function useAppDataMutations() {
             {
                 // Optimistic data - shown immediately before API completes
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [] };
+                    if (!currentData) return { notebooks: [], tags: [], notes: [], trashCount: 0 };
                     return {
                         ...currentData,
                         notes: currentData.notes.map(note =>
@@ -223,7 +227,7 @@ export function useAppDataMutations() {
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [tempNote] };
+                    if (!currentData) return { notebooks: [], tags: [], notes: [tempNote], trashCount: 0 };
                     return {
                         ...currentData,
                         notes: [tempNote, ...currentData.notes],
@@ -269,7 +273,7 @@ export function useAppDataMutations() {
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [tempNotebook], tags: [], notes: [] };
+                    if (!currentData) return { notebooks: [tempNotebook], tags: [], notes: [], trashCount: 0 };
                     return {
                         ...currentData,
                         notebooks: [...currentData.notebooks, tempNotebook]
@@ -309,7 +313,7 @@ export function useAppDataMutations() {
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [] };
+                    if (!currentData) return { notebooks: [], tags: [], notes: [], trashCount: 0 };
                     return {
                         ...currentData,
                         notebooks: currentData.notebooks.map(nb =>

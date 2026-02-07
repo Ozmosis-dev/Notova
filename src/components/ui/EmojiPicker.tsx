@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OpenMoji, OpenMojiButton } from './OpenMoji';
 import {
-    OPENMOJI_CATEGORIES,
+    loadOpenMojiData,
+    getCategories,
     searchEmojis,
     type CategoryKey,
 } from '@/lib/openmoji-categories';
@@ -27,6 +28,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('smileys-emotion');
     const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+    const [dataLoaded, setDataLoaded] = useState(false);
     const pickerRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,11 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
     const isMobile = useMediaQuery('(max-width: 768px)');
 
 
+
+    // Load OpenMoji data on mount (dynamic import)
+    useEffect(() => {
+        loadOpenMojiData().then(() => setDataLoaded(true));
+    }, []);
 
     // Load recent emojis from localStorage
     useEffect(() => {
@@ -131,6 +138,9 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
         onClose();
     };
 
+    // Get the live categories object (populated after loadOpenMojiData resolves)
+    const categories = getCategories();
+
     // Get displayed emojis based on search or selected category
     const displayedEmojis = useMemo(() => {
         if (search.trim()) {
@@ -148,8 +158,8 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
             }));
         }
 
-        return OPENMOJI_CATEGORIES[selectedCategory]?.emojis || [];
-    }, [search, selectedCategory, recentEmojis]);
+        return categories[selectedCategory]?.emojis || [];
+    }, [search, selectedCategory, recentEmojis, dataLoaded, categories]);
 
     // Category keys for tabs
     const categoryKeys = useMemo(() => {
@@ -281,7 +291,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                     <div className="relative shrink-0" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                         <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar px-3 pb-2 snap-x">
                             {categoryKeys.map((key) => {
-                                const category = OPENMOJI_CATEGORIES[key];
+                                const category = categories[key];
                                 const isSelected = selectedCategory === key;
                                 return (
                                     <button
@@ -321,7 +331,7 @@ export function EmojiPicker({ onSelect, onClose, currentEmoji, className = '', s
                             {search ? (
                                 `Results`
                             ) : (
-                                OPENMOJI_CATEGORIES[selectedCategory]?.label
+                                categories[selectedCategory]?.label
                             )}
                         </span>
                         <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-content-secondary)', color: 'var(--text-muted)' }}>
@@ -504,7 +514,7 @@ export function IconButton({ icon, onIconChange, size = 'md', className = '', pl
             {mounted && createPortal(
                 <AnimatePresence>
                     {showPicker && (
-                        <div className="fixed inset-0 z-[9999] pointer-events-none">
+                        <div className="fixed inset-0 z-9999 pointer-events-none">
                             <div className="pointer-events-auto">
                                 <EmojiPicker
                                     onSelect={(hex) => {
