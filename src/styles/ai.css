@@ -1,12 +1,12 @@
 /* AI Feature Styles */
 
-/* AI Accent Colors - Orange/Yellow Theme */
+/* AI Accent Colors - Derived from theme highlight */
 :root {
-    --ai-primary: #E8783A;
-    --ai-primary-hover: #D86B2F;
-    --ai-gradient: linear-gradient(135deg, #E8783A 0%, #F0C15D 100%);
-    --ai-gradient-soft: linear-gradient(135deg, rgba(232, 120, 58, 0.08) 0%, rgba(240, 193, 93, 0.08) 100%);
-    --ai-glow: 0 0 20px rgba(232, 120, 58, 0.25);
+    --ai-primary: var(--highlight);
+    --ai-primary-hover: var(--highlight);
+    --ai-gradient: linear-gradient(135deg, var(--highlight) 0%, var(--highlight-soft) 100%);
+    --ai-gradient-soft: linear-gradient(135deg, var(--highlight-soft) 0%, transparent 100%);
+    --ai-glow: 0 0 20px var(--highlight-soft);
 }
 
 /* AI Summarize Panel Slide-out */
@@ -53,7 +53,7 @@
 }
 
 .ai-panel-title svg {
-    color: var(--ai-primary);
+    color: var(--highlight);
 }
 
 .ai-panel-close {
@@ -174,7 +174,7 @@
 }
 
 .ai-connection-icon {
-    color: var(--ai-primary);
+    color: var(--highlight);
     flex-shrink: 0;
 }
 
@@ -308,7 +308,7 @@
     width: 40px;
     height: 40px;
     border: 3px solid var(--border-primary);
-    border-top-color: var(--ai-primary);
+    border-top-color: var(--highlight);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
