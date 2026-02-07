@@ -113,7 +113,7 @@ const floatingSlowVariants = {
 }
 
 // Hook to detect if element is in center of viewport for mobile scroll animations
-const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement>) => {
+const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement | null>) => {
     const [isActive, setIsActive] = useState(false);
     const internalRef = useRef<HTMLDivElement>(null);
     const ref = providedRef || internalRef;
@@ -152,7 +152,7 @@ const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement>) => {
 // Separate component for Feature Card to use hooks
 const FeatureCard = ({ feature, i }: { feature: any, i: number }) => {
     // Scroll-linked scale effect
-    const cardRef = useRef(null);
+    const cardRef = useRef<HTMLDivElement>(null);
     const { isActive } = useScrollActive(cardRef);
     const { scrollYProgress } = useScroll({
         target: cardRef,
