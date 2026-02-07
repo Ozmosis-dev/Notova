@@ -502,7 +502,7 @@ export default function LoginPage() {
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center transform -rotate-12 z-10 pl-1 pt-1">
                                     <div className="text-white font-bold text-[10px] lg:text-xs leading-none flex flex-col items-center gap-0.5">
                                         <div className="flex items-center gap-1">
-                                            <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#E8783A]" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                            <svg viewBox="0 0 24 24" className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                                                 <polyline points="20 6 9 17 4 12"></polyline>
                                             </svg>
                                             <span>Best</span>
@@ -617,7 +617,7 @@ export default function LoginPage() {
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center transform -rotate-12 z-10 pl-1 pt-1">
                                         <div className="text-white font-bold text-[10px] leading-none flex flex-col items-center gap-0.5">
                                             <div className="flex items-center gap-1">
-                                                <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#E8783A]" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                                <svg viewBox="0 0 24 24" className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                                                     <polyline points="20 6 9 17 4 12"></polyline>
                                                 </svg>
                                                 <span>Best</span>
@@ -1205,9 +1205,9 @@ export default function LoginPage() {
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[#7A7168] text-sm">
                     <p>© 2026 Notova Inc. All rights reserved.</p>
                     <div className="flex gap-6">
-                        <a href="#" className="hover:text-white transition-colors">Terms</a>
-                        <a href="#" className="hover:text-white transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-white transition-colors">Cookies</a>
+                        <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                        <Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link>
                     </div>
                 </div>
             </motion.footer>
