@@ -51,6 +51,12 @@ const nextConfig: NextConfig = {
   },
 
   /**
+   * Hide the Next.js dev indicator (the "N" button in bottom-left corner)
+   * This was overlapping with feature cards on mobile
+   */
+  devIndicators: false,
+
+  /**
    * Experimental features for better performance
    */
   experimental: {

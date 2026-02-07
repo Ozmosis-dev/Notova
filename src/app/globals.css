@@ -1690,31 +1690,15 @@ input:-webkit-autofill:active {
   will-change: transform;
 }
 
-/* Mobile: use swipeable snap scrolling instead of infinite auto-scroll */
+/* Mobile: autoplay with faster speed — opposite directions */
 @media (max-width: 767px) {
 
-  .animate-carousel,
+  .animate-carousel {
+    animation: carousel-scroll 30s linear infinite;
+  }
+
   .animate-carousel-reverse {
-    animation: mobile-carousel-hint 1.2s ease-in-out 0.5s 1 forwards;
-  }
-}
-
-/* Nudge animation to hint there are more cards */
-@keyframes mobile-carousel-hint {
-  0% {
-    transform: translateX(0);
-  }
-
-  40% {
-    transform: translateX(-40px);
-  }
-
-  70% {
-    transform: translateX(10px);
-  }
-
-  100% {
-    transform: translateX(0);
+    animation: carousel-scroll-reverse 35s linear infinite;
   }
 }
 

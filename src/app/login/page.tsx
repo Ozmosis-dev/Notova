@@ -167,7 +167,8 @@ const useScrollActive = (providedRef?: React.RefObject<HTMLDivElement | null>, d
 const FeatureCard = ({ feature, i, isMobile }: { feature: any, i: number, isMobile: boolean }) => {
     // Scroll-linked scale effect (disabled on mobile for performance)
     const cardRef = useRef<HTMLDivElement>(null);
-    const { isActive } = useScrollActive(cardRef, isMobile);
+    // useScrollActive is for MOBILE only — disabled on desktop (pass !isMobile as disabled)
+    const { isActive } = useScrollActive(cardRef, !isMobile);
     const { scrollYProgress } = useScroll({
         target: cardRef,
         offset: ["start end", "end start"]
@@ -198,14 +199,14 @@ const FeatureCard = ({ feature, i, isMobile }: { feature: any, i: number, isMobi
                 viewport: { once: true, amount: 0.2 },
                 transition: { duration: 0.4, ease: "easeOut" }
             } : {})}
-            className={`hover-3d w-full h-full group ${isActive ? 'mobile-hover' : ''}`}
+            className={`${isMobile ? '' : 'hover-3d '}w-full h-full group ${isActive ? 'mobile-hover' : ''}`}
         >
             {/* Card Content - First child for hover-3d effect */}
             <div
-                className="relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 group-hover:border-white/10 transition-colors duration-500"
+                className={`relative h-full flex flex-col rounded-3xl bg-[#202020] border border-white/5 group-hover:border-white/10 transition-all duration-500 ${isActive ? 'border-white/10 scale-[1.02]' : ''}`}
             >
                 {/* Hover Glow */}
-                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3d`} />
+                <div className={`absolute inset-0 bg-linear-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 ${isActive ? '!opacity-5' : ''} transition-opacity duration-500 rounded-3xl`} />
 
                 <div className="relative z-10 flex flex-col h-full p-8">
                     {/* Header */}
@@ -221,27 +222,20 @@ const FeatureCard = ({ feature, i, isMobile }: { feature: any, i: number, isMobi
                     <p className="text-white/50 leading-relaxed mb-8 text-sm font-medium">{feature.desc}</p>
 
                     {/* Image Container */}
-                    <div className="mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-colors">
+                    <div className={`mt-auto relative w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-inner group-hover:border-white/10 transition-all duration-700 ${isActive ? 'border-white/10' : ''}`}>
                         <Image
                             src={feature.img}
                             alt={feature.title}
                             fill
-                            className="object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
+                            className={`object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105 ${isActive ? 'grayscale-0 !opacity-100 scale-105' : ''}`}
                         />
                         {/* Overlay to ensure text readability if desired, or nice fade */}
                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                     </div>
                 </div>
             </div>
-            {/* 8 empty divs for hover-3d effect zones */}
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+            {/* 8 empty divs for hover-3d effect zones — only on desktop */}
+            {!isMobile && <><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></>}
         </motion.div>
     );
 };
@@ -829,7 +823,7 @@ export default function LoginPage() {
                     </motion.div>
 
                     {/* Row 1 — Scrolls Left */}
-                    <div className="flex w-full overflow-x-auto md:overflow-hidden snap-x snap-mandatory scroll-smooth [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] no-scrollbar">
+                    <div className="flex w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
                         <motion.div
                             style={{ x: themeStripX }}
                             className="flex gap-3 md:gap-4 items-center pl-4 animate-carousel w-max"
@@ -876,8 +870,8 @@ export default function LoginPage() {
                         </motion.div>
                     </div>
 
-                    {/* Row 2 — Scrolls Right (offset order) */}
-                    <div className="flex w-full overflow-x-auto md:overflow-hidden snap-x snap-mandatory scroll-smooth [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] no-scrollbar mt-3 md:mt-4">
+                    {/* Row 2 — Scrolls Right (mobile only) */}
+                    <div className="flex md:hidden w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] mt-3">
                         <div className="flex gap-3 md:gap-4 items-center pl-4 animate-carousel-reverse w-max">
                             {[
                                 // Offset order — starts at Earth for visual variety
@@ -922,8 +916,6 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Scroll-to-Top Arrow */}
-                    <ScrollToTopArrow containerRef={themeStripRef} />
                 </div>
 
                 <div className="max-w-7xl mx-auto px-6 pb-24 pt-0 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
