@@ -17,7 +17,9 @@ import { useAISummary } from '@/hooks/useAISummary';
 import { useSmartTags } from '@/hooks/useSmartTags';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+
 import { Button } from '@/components/ui/Button';
+import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 
 export default function Home() {
   // State
@@ -622,77 +624,138 @@ export default function Home() {
   }, [notes, aiSummary]);
 
   return (
-    <AppLayout
-      notebooks={notebooksWithCount}
-      tags={tagsWithCount}
-      selectedNotebookId={selectedNotebookId}
-      selectedTagId={selectedTagId}
-      onNotebookSelect={handleNotebookSelect}
-      onTagSelect={handleTagSelect}
-      onNewNotebook={() => setShowNewNotebookModal(true)}
-      onNotebookIconChange={handleNotebookIconChange}
-      onNotebookPinToggle={handleNotebookPinToggle}
-      onNotebooksViewToggle={handleNotebooksViewToggle}
-      onAllNotesClick={handleAllNotesClick}
-      onImportClick={() => setShowImportModal(true)}
-      onSearch={handleSearch}
-      onTagDelete={async (tagId) => {
-        const success = await deleteTag(tagId);
-        if (success) {
-          // Clear selection if the deleted tag was selected
-          if (selectedTagId === tagId) {
-            setSelectedTagId(null);
+    <>
+      <OnboardingTour />
+      <AppLayout
+        notebooks={notebooksWithCount}
+        tags={tagsWithCount}
+        selectedNotebookId={selectedNotebookId}
+        selectedTagId={selectedTagId}
+        onNotebookSelect={handleNotebookSelect}
+        onTagSelect={handleTagSelect}
+        onNewNotebook={() => setShowNewNotebookModal(true)}
+        onNotebookIconChange={handleNotebookIconChange}
+        onNotebookPinToggle={handleNotebookPinToggle}
+        onNotebooksViewToggle={handleNotebooksViewToggle}
+        onAllNotesClick={handleAllNotesClick}
+        onImportClick={() => setShowImportModal(true)}
+        onSearch={handleSearch}
+        onTagDelete={async (tagId) => {
+          const success = await deleteTag(tagId);
+          if (success) {
+            // Clear selection if the deleted tag was selected
+            if (selectedTagId === tagId) {
+              setSelectedTagId(null);
+            }
+            // Refetch to update tag counts
+            await refetchAppData();
+            // Refetch tags for the tags filter sub-row
+            await refetchTags();
           }
-          // Refetch to update tag counts
-          await refetchAppData();
-          // Refetch tags for the tags filter sub-row
-          await refetchTags();
-        }
-      }}
-      onTrashClick={handleTrashClick}
-      trashCount={trashCount}
-      showNotebooksView={showNotebooksView}
-    >
-      {/* Trash View - Full page view replacing notes list and editor */}
-      {showTrashView ? (
-        <div className="flex-1 min-w-0">
-          <TrashView
-            trashedNotes={mappedNotes.map(n => ({
-              ...n,
-              trashedAt: new Date().toISOString(),
-            }))}
-            loading={appDataLoading}
-            onNoteSelect={handleNoteSelect}
-            onNoteRestore={handleRestoreFromTrash}
-            onNoteDelete={handleDeleteFromTrash}
-            onEmptyTrash={handleEmptyTrash}
-            onClose={handleCloseTrashView}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Notes List or Notebooks Grid */}
-          {/* Hide on mobile when editor is showing, always show on desktop */}
-          {/* In full panel mode (no note selected), takes full width */}
-          {/* Hide notebooks list when a notebook is selected in grid view */}
-          {!selectedNotebookInGrid && (
-            <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex w-full md:w-auto ${(!selectedNoteId && !showNotebooksView) || (showNotebooksView && !selectedNotebookInGrid) ? 'flex-1' : ''}`}>
-              {showNotebooksView ? (
-                <NotebooksList
-                  notebooks={notebooksWithCount}
-                  notes={mappedNotes}
-                  selectedNotebookId={selectedNotebookInGrid}
-                  onNotebookSelect={handleNotebookSelectFromGrid}
-                  onNotebookColorChange={handleNotebookColorChange}
-                  onNotebookDelete={handleNotebookDelete}
-                  onSummarizeNotebook={handleSummarizeNotebook}
-                  isSummarizing={aiSummary.isLoading && aiSummary.summaryType === 'notebook'}
-                  summarizingNotebookId={summarizingNotebookId}
-                  onNewNotebook={() => setShowNewNotebookModal(true)}
-                  loading={appDataLoading}
-                  fullPanel={!selectedNotebookInGrid}
-                />
-              ) : (
+        }}
+        onTrashClick={handleTrashClick}
+        trashCount={trashCount}
+        showNotebooksView={showNotebooksView}
+      >
+        {/* Trash View - Full page view replacing notes list and editor */}
+        {showTrashView ? (
+          <div className="flex-1 min-w-0">
+            <TrashView
+              trashedNotes={mappedNotes.map(n => ({
+                ...n,
+                trashedAt: new Date().toISOString(),
+              }))}
+              loading={appDataLoading}
+              onNoteSelect={handleNoteSelect}
+              onNoteRestore={handleRestoreFromTrash}
+              onNoteDelete={handleDeleteFromTrash}
+              onEmptyTrash={handleEmptyTrash}
+              onClose={handleCloseTrashView}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Notes List or Notebooks Grid */}
+            {/* Hide on mobile when editor is showing, always show on desktop */}
+            {/* In full panel mode (no note selected), takes full width */}
+            {/* Hide notebooks list when a notebook is selected in grid view */}
+            {!selectedNotebookInGrid && (
+              <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex w-full md:w-auto ${(!selectedNoteId && !showNotebooksView) || (showNotebooksView && !selectedNotebookInGrid) ? 'flex-1' : ''}`}>
+                {showNotebooksView ? (
+                  <NotebooksList
+                    notebooks={notebooksWithCount}
+                    notes={mappedNotes}
+                    selectedNotebookId={selectedNotebookInGrid}
+                    onNotebookSelect={handleNotebookSelectFromGrid}
+                    onNotebookColorChange={handleNotebookColorChange}
+                    onNotebookDelete={handleNotebookDelete}
+                    onSummarizeNotebook={handleSummarizeNotebook}
+                    isSummarizing={aiSummary.isLoading && aiSummary.summaryType === 'notebook'}
+                    summarizingNotebookId={summarizingNotebookId}
+                    onNewNotebook={() => setShowNewNotebookModal(true)}
+                    loading={appDataLoading}
+                    fullPanel={!selectedNotebookInGrid}
+                  />
+                ) : (
+                  <NotesList
+                    notes={mappedNotes}
+                    selectedNoteId={selectedNoteId}
+                    onNoteSelect={handleNoteSelect}
+                    onNewNote={handleNewNote}
+                    onNoteColorChange={handleNoteColorChange}
+                    onToggleFavorite={handleToggleFavorite}
+                    loading={appDataLoading}
+                    fullPanel={!selectedNoteId}
+                    searchQuery={searchQuery}
+                    onGenerateSearchInsights={handleGenerateSearchInsights}
+                    isGeneratingInsights={aiSummary.isLoading && aiSummary.summaryType === 'search'}
+                    emptyMessage={
+                      showTrash
+                        ? 'Trash is empty'
+                        : selectedNotebookId
+                          ? 'No notes in this notebook'
+                          : selectedTagId
+                            ? 'No notes with this tag'
+                            : 'No notes yet'
+                    }
+                    notebookName={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.name : undefined}
+                    notebookId={selectedNotebookId || undefined}
+                    isDefaultNotebook={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.isDefault : undefined}
+                    notebookCount={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.noteCount : undefined}
+                    onNotebookDelete={handleNotebookDelete}
+                    onBack={selectedNotebookId ? () => setSelectedNotebookId(null) : undefined}
+                    onSummarizeNotebook={handleSummarizeNotebook}
+                    isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookId}
+                    allTags={allAvailableTags}
+                    onGenerateSmartTags={(noteIds) => smartTags.generateSmartTags(noteIds, allAvailableTags.map(t => t.name))}
+                    isGeneratingSmartTags={smartTags.loading}
+                    smartTagsModalOpen={smartTags.modalOpen}
+                    onCloseSmartTagsModal={smartTags.closeModal}
+                    smartTagsSuggestions={smartTags.suggestedTags}
+                    smartTagsSelected={smartTags.selectedTags}
+                    onToggleSmartTag={smartTags.toggleTag}
+                    onSelectAllSmartTags={smartTags.selectAll}
+                    onDeselectAllSmartTags={smartTags.deselectAll}
+                    onApplySmartTags={async () => {
+                      await smartTags.applyTags();
+                      refetchTags();
+                      refetchAppData();
+                    }}
+                    isApplyingSmartTags={smartTags.applying}
+                    smartTagsError={smartTags.error}
+                    smartTagsNoteCount={smartTags.noteIds.length}
+                    notebooks={notebooksWithCount}
+                    onMoveNotes={handleBulkMoveNotes}
+                    onBulkDelete={handleBulkDeleteNotes}
+                    onBulkSummarize={handleBulkSummarizeNotes}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Notes List for Selected Notebook - Only show when a notebook is selected in notebooks view */}
+            {showNotebooksView && selectedNotebookInGrid && (
+              <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex ${!selectedNoteId ? 'flex-1' : ''} min-w-0`}>
                 <NotesList
                   notes={mappedNotes}
                   selectedNoteId={selectedNoteId}
@@ -702,26 +765,15 @@ export default function Home() {
                   onToggleFavorite={handleToggleFavorite}
                   loading={appDataLoading}
                   fullPanel={!selectedNoteId}
-                  searchQuery={searchQuery}
-                  onGenerateSearchInsights={handleGenerateSearchInsights}
-                  isGeneratingInsights={aiSummary.isLoading && aiSummary.summaryType === 'search'}
-                  emptyMessage={
-                    showTrash
-                      ? 'Trash is empty'
-                      : selectedNotebookId
-                        ? 'No notes in this notebook'
-                        : selectedTagId
-                          ? 'No notes with this tag'
-                          : 'No notes yet'
-                  }
-                  notebookName={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.name : undefined}
-                  notebookId={selectedNotebookId || undefined}
-                  isDefaultNotebook={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.isDefault : undefined}
-                  notebookCount={selectedNotebookId ? notebooksWithCount.find(nb => nb.id === selectedNotebookId)?.noteCount : undefined}
+                  emptyMessage="No notes in this notebook"
+                  notebookName={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.name}
+                  notebookId={selectedNotebookInGrid}
+                  isDefaultNotebook={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.isDefault}
+                  notebookCount={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.noteCount}
                   onNotebookDelete={handleNotebookDelete}
-                  onBack={selectedNotebookId ? () => setSelectedNotebookId(null) : undefined}
+                  onBack={() => setSelectedNotebookInGrid(null)}
                   onSummarizeNotebook={handleSummarizeNotebook}
-                  isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookId}
+                  isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookInGrid}
                   allTags={allAvailableTags}
                   onGenerateSmartTags={(noteIds) => smartTags.generateSmartTags(noteIds, allAvailableTags.map(t => t.name))}
                   isGeneratingSmartTags={smartTags.loading}
@@ -745,132 +797,85 @@ export default function Home() {
                   onBulkDelete={handleBulkDeleteNotes}
                   onBulkSummarize={handleBulkSummarizeNotes}
                 />
-              )}
+              </div>
+            )}
+
+            {/* Note Editor - Only show when a note is selected */}
+            {selectedNoteId && (
+              <div className={`${mobileShowEditor ? 'flex' : 'hidden'} md:flex flex-1 min-w-0`}>
+                <NoteEditor
+                  note={selectedNote}
+                  loading={noteLoading}
+                  saving={false}
+                  onSave={handleSaveNote}
+                  onDelete={handleDeleteNote}
+                  onRestore={handleRestoreNote}
+                  onIconChange={handleNoteIconChange}
+                  onTagsChange={(_noteId, tags) => updateNoteTags(tags)}
+                  onBack={handleMobileBack}
+                  showBackButton={mobileShowEditor}
+                  onSummarize={selectedNote ? () => aiSummary.summarizeNote(selectedNote.id, selectedNote.title) : undefined}
+                  isSummarizing={aiSummary.isLoading && aiSummary.summaryType === 'note'}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Import Modal */}
+        <ImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onImportComplete={handleImportComplete}
+        />
+
+        {/* New Notebook Modal */}
+        <Modal
+          isOpen={showNewNotebookModal}
+          onClose={() => setShowNewNotebookModal(false)}
+          title="New Notebook"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Notebook Name"
+              value={newNotebookName}
+              onChange={(e) => setNewNotebookName(e.target.value)}
+              placeholder="My Notebook"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => setShowNewNotebookModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCreateNotebook}
+                disabled={!newNotebookName.trim() || creatingNotebook}
+                isLoading={creatingNotebook}
+              >
+                Create
+              </Button>
             </div>
-          )}
-
-          {/* Notes List for Selected Notebook - Only show when a notebook is selected in notebooks view */}
-          {showNotebooksView && selectedNotebookInGrid && (
-            <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex ${!selectedNoteId ? 'flex-1' : ''} min-w-0`}>
-              <NotesList
-                notes={mappedNotes}
-                selectedNoteId={selectedNoteId}
-                onNoteSelect={handleNoteSelect}
-                onNewNote={handleNewNote}
-                onNoteColorChange={handleNoteColorChange}
-                onToggleFavorite={handleToggleFavorite}
-                loading={appDataLoading}
-                fullPanel={!selectedNoteId}
-                emptyMessage="No notes in this notebook"
-                notebookName={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.name}
-                notebookId={selectedNotebookInGrid}
-                isDefaultNotebook={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.isDefault}
-                notebookCount={notebooksWithCount.find(nb => nb.id === selectedNotebookInGrid)?.noteCount}
-                onNotebookDelete={handleNotebookDelete}
-                onBack={() => setSelectedNotebookInGrid(null)}
-                onSummarizeNotebook={handleSummarizeNotebook}
-                isSummarizingNotebook={aiSummary.isLoading && aiSummary.summaryType === 'notebook' && summarizingNotebookId === selectedNotebookInGrid}
-                allTags={allAvailableTags}
-                onGenerateSmartTags={(noteIds) => smartTags.generateSmartTags(noteIds, allAvailableTags.map(t => t.name))}
-                isGeneratingSmartTags={smartTags.loading}
-                smartTagsModalOpen={smartTags.modalOpen}
-                onCloseSmartTagsModal={smartTags.closeModal}
-                smartTagsSuggestions={smartTags.suggestedTags}
-                smartTagsSelected={smartTags.selectedTags}
-                onToggleSmartTag={smartTags.toggleTag}
-                onSelectAllSmartTags={smartTags.selectAll}
-                onDeselectAllSmartTags={smartTags.deselectAll}
-                onApplySmartTags={async () => {
-                  await smartTags.applyTags();
-                  refetchTags();
-                  refetchAppData();
-                }}
-                isApplyingSmartTags={smartTags.applying}
-                smartTagsError={smartTags.error}
-                smartTagsNoteCount={smartTags.noteIds.length}
-                notebooks={notebooksWithCount}
-                onMoveNotes={handleBulkMoveNotes}
-                onBulkDelete={handleBulkDeleteNotes}
-                onBulkSummarize={handleBulkSummarizeNotes}
-              />
-            </div>
-          )}
-
-          {/* Note Editor - Only show when a note is selected */}
-          {selectedNoteId && (
-            <div className={`${mobileShowEditor ? 'flex' : 'hidden'} md:flex flex-1 min-w-0`}>
-              <NoteEditor
-                note={selectedNote}
-                loading={noteLoading}
-                saving={false}
-                onSave={handleSaveNote}
-                onDelete={handleDeleteNote}
-                onRestore={handleRestoreNote}
-                onIconChange={handleNoteIconChange}
-                onTagsChange={(_noteId, tags) => updateNoteTags(tags)}
-                onBack={handleMobileBack}
-                showBackButton={mobileShowEditor}
-                onSummarize={selectedNote ? () => aiSummary.summarizeNote(selectedNote.id, selectedNote.title) : undefined}
-                isSummarizing={aiSummary.isLoading && aiSummary.summaryType === 'note'}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImportComplete={handleImportComplete}
-      />
-
-      {/* New Notebook Modal */}
-      <Modal
-        isOpen={showNewNotebookModal}
-        onClose={() => setShowNewNotebookModal(false)}
-        title="New Notebook"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <Input
-            label="Notebook Name"
-            value={newNotebookName}
-            onChange={(e) => setNewNotebookName(e.target.value)}
-            placeholder="My Notebook"
-            autoFocus
-          />
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setShowNewNotebookModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleCreateNotebook}
-              disabled={!newNotebookName.trim() || creatingNotebook}
-              isLoading={creatingNotebook}
-            >
-              Create
-            </Button>
           </div>
-        </div>
-      </Modal>
+        </Modal>
 
-      {/* AI Summarize Panel */}
-      <AISummaryPanel
-        isOpen={aiSummary.isOpen}
-        onClose={aiSummary.closePanel}
-        type={aiSummary.summaryType}
-        title={aiSummary.summaryTitle}
-        data={aiSummary.data}
-        isLoading={aiSummary.isLoading}
-        error={aiSummary.error}
-        onRetry={aiSummary.retry}
-        onSaveAsNote={() => aiSummary.saveAsNote()}
-      />
-    </AppLayout>
+        {/* AI Summarize Panel */}
+        <AISummaryPanel
+          isOpen={aiSummary.isOpen}
+          onClose={aiSummary.closePanel}
+          type={aiSummary.summaryType}
+          title={aiSummary.summaryTitle}
+          data={aiSummary.data}
+          isLoading={aiSummary.isLoading}
+          error={aiSummary.error}
+          onRetry={aiSummary.retry}
+          onSaveAsNote={() => aiSummary.saveAsNote()}
+        />
+      </AppLayout>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner } from '../ui/Spinner';
 import { OpenMoji } from '../ui/OpenMoji';
+import { EmptyState } from '../ui/EmptyState';
 import { ColorPickerPopup, getCardColorStyle, type CardColorKey } from './ColorPickerPopup';
 import { AISearchInsightsButton } from '../ai/AISearchInsightsButton';
 import { SmartTagModal } from '../ai/SmartTagModal';
@@ -684,48 +685,25 @@ export function NotesList({
                         <Spinner size="lg" />
                     </div>
                 ) : sortedNotes.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center justify-center py-12 px-4 text-center"
-                    >
-                        <div
-                            className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4"
-                            style={{
-                                background: 'var(--surface-content-secondary)',
-                                boxShadow: 'var(--shadow-sm)'
-                            }}
-                        >
-                            <svg
-                                className="w-10 h-10"
-                                style={{ color: 'var(--text-muted)' }}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <p
-                            className="text-sm"
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            {emptyMessage}
-                        </p>
-                        <motion.button
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={onNewNote}
-                            className="mt-5 px-5 py-3 text-sm font-semibold rounded-2xl transition-all"
-                            style={{
-                                background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
-                                color: 'var(--text-on-accent)',
-                                boxShadow: 'var(--shadow-sm)'
-                            }}
-                        >
-                            Create your first note
-                        </motion.button>
-                    </motion.div>
+                    <div className="h-full flex items-center justify-center">
+                        <EmptyState
+                            icon={
+                                <svg
+                                    className="w-10 h-10"
+                                    style={{ color: 'var(--text-muted)' }}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            }
+                            title="No notes found"
+                            description={emptyMessage}
+                            actionLabel="Create your first note"
+                            onAction={onNewNote}
+                        />
+                    </div>
                 ) : (
                     /* Masonry-style grid - more columns in full panel mode */
                     <div className={`grid gap-3 ${fullPanel ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6' : 'grid-cols-2'}`}>
