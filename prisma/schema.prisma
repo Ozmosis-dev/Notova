@@ -17,6 +17,7 @@ model User {
   name      String?
   theme     String     @default("dark") // User's preferred theme: light, dark, warm, cool
   notebooks Notebook[]
+  stacks    Stack[]
   tags      Tag[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -34,6 +35,23 @@ model Notebook {
   isPinned   Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  stackId   String?
+  stack     Stack?   @relation(fields: [stackId], references: [id])
+
+  @@index([userId])
+  @@index([stackId])
+}
+
+model Stack {
+  id        String     @id @default(cuid())
+  name      String
+  icon      String?    // Emoji or icon identifier
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebooks Notebook[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([userId])
 }

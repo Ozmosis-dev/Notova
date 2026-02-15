@@ -5,15 +5,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { importEnex, listImportJobs } from '@/lib/import';
+import { importParsedData, listImportJobs } from '@/lib/import';
+import { parseFile } from '@/lib/import/file-parser';
 import { ensureDbUser } from '@/lib/supabase/server';
+
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '100mb',
+        },
+    },
+};
 
 /**
  * POST /api/import
  * 
- * Upload and import an ENEX file.
+ * Upload and import a file (ENEX, PDF, DOCX, TXT).
  * Expects multipart/form-data with:
- * - file: The ENEX file
+ * - file: The file to import
  * - notebookName: (optional) Name for the notebook to import into
  */
 export async function POST(request: NextRequest) {
@@ -42,9 +51,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate file type
-        if (!file.name.endsWith('.enex')) {
+        const validExtensions = ['.enex', '.pdf', '.docx', '.txt'];
+        const lowerName = file.name.toLowerCase();
+        if (!validExtensions.some(ext => lowerName.endsWith(ext))) {
             return NextResponse.json(
-                { error: 'File must be an ENEX file' },
+                { error: 'Invalid file type. Supported formats: .enex, .pdf, .docx, .txt' },
                 { status: 400 }
             );
         }
@@ -62,8 +73,16 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Start import process
-        const result = await importEnex(buffer, {
+        // Parse the file
+        const enexExport = await parseFile({
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            buffer,
+            lastModified: file.lastModified
+        });
+
+        // Start import process using the parsed data
+        const result = await importParsedData(enexExport, {
             userId,
             filename: file.name,
             notebookName: notebookName || undefined,

@@ -9,6 +9,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { ReportIssueModal } from '@/components/ui/ReportIssueModal';
 import { AddToHomeScreenModal } from '@/components/ui/AddToHomeScreenModal';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
+import { Input } from '@/components/ui/Input';
 
 interface Notebook {
     id: string;
@@ -17,6 +18,14 @@ interface Notebook {
     noteCount: number;
     isDefault?: boolean;
     isPinned?: boolean;
+    stackId?: string | null;
+}
+
+export interface Stack {
+    id: string;
+    name: string;
+    icon?: string | null;
+    userId?: string;
 }
 
 interface Tag {
@@ -35,7 +44,7 @@ interface SidebarProps {
     onTagSelect?: (id: string | null) => void;
     onNotebookIconChange?: (id: string, icon: string) => void;
     onNotebookPinToggle?: (id: string) => void; // For toggling pinned status
-    onNewNotebook?: () => void;
+    onNewNotebook?: (stackId?: string) => void;
     onItemClick?: () => void; // For closing mobile sidebar
     onNotebooksViewToggle?: () => void; // For showing notebooks grid view
     onAllNotesClick?: () => void; // For navigating to all notes view
@@ -43,6 +52,14 @@ interface SidebarProps {
     onTrashClick?: () => void; // For navigating to trash view
     trashCount?: number; // Number of items in trash
     showNotebooksView?: boolean; // Whether the notebooks grid view is showing
+    // Stack handlers
+    stacks?: Stack[];
+    onStackCreate?: (name: string) => Promise<void>;
+    onStackUpdate?: (id: string, updates: { name?: string; icon?: string | null }) => Promise<void>;
+    onStackDelete?: (id: string) => Promise<void>;
+    onNotebookMove?: (notebookId: string, stackId: string | null) => Promise<void>;
+    selectedStackId?: string | null;
+    onStackSelect?: (id: string | null) => void;
 }
 
 const listItemVariants = {
@@ -56,6 +73,127 @@ const listItemVariants = {
         },
     }),
 };
+
+const NotebookItem = ({
+    notebook,
+    index,
+    selectedNotebookId,
+    onSelect,
+    onPinToggle,
+    onIconChange,
+    onMoveStart
+}: {
+    notebook: Notebook;
+    index: number;
+    selectedNotebookId?: string | null;
+    onSelect: (id: string | null) => void;
+    onPinToggle?: (id: string) => void;
+    onIconChange?: (id: string, icon: string) => void;
+    onMoveStart?: (notebook: Notebook) => void;
+}) => (
+    <motion.div
+        custom={index}
+        variants={listItemVariants}
+        initial="hidden"
+        animate="visible"
+        onClick={() => onSelect(notebook.id)}
+        role="button"
+        tabIndex={0}
+        className="group/notebook w-full flex items-center justify-between px-2 py-1 rounded-lg text-[13px] transition-all cursor-pointer"
+        style={{
+            background: selectedNotebookId === notebook.id
+                ? 'var(--sidebar-selection-bg)'
+                : 'transparent',
+            border: selectedNotebookId === notebook.id
+                ? '1px solid var(--sidebar-selection-border)'
+                : '1px solid transparent',
+            boxShadow: selectedNotebookId === notebook.id
+                ? '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                : 'none',
+            color: selectedNotebookId === notebook.id
+                ? 'var(--text-on-shell, var(--text-primary))'
+                : 'var(--text-on-shell-secondary, var(--text-secondary))'
+        }}
+    >
+        <div className="flex items-center gap-1.5 overflow-hidden">
+            <div onClick={(e) => e.stopPropagation()}>
+                <IconButton
+                    icon={notebook.icon}
+                    onIconChange={(icon) => onIconChange?.(notebook.id, icon)}
+                    size="sm"
+                    placeholder={
+                        <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    }
+                />
+            </div>
+            <span className="truncate">{notebook.name}</span>
+            {notebook.isPinned && (
+                <span
+                    className="shrink-0 ml-1 transition-all duration-300"
+                    style={{
+                        color: 'var(--accent-primary)',
+                        filter: 'drop-shadow(0 0 3px var(--accent-glow))'
+                    }}
+                >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
+                    </svg>
+                </span>
+            )}
+        </div>
+        <div className="relative flex items-center justify-end min-w-[48px]">
+            <span
+                className="text-xs tabular-nums transition-all duration-200 ease-out absolute right-0 group-hover/notebook:opacity-0 group-hover/notebook:scale-75"
+                style={{ color: 'var(--text-muted)' }}
+            >
+                {notebook.noteCount}
+            </span>
+            <div className="flex items-center gap-1 opacity-0 scale-75 group-hover/notebook:opacity-100 group-hover/notebook:scale-100 transition-all duration-200">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onPinToggle?.(notebook.id);
+                    }}
+                    className="p-1 rounded hover:bg-(--surface-shell-active) hover:text-(--accent-primary) transition-colors"
+                    title={notebook.isPinned ? 'Unpin notebook' : 'Pin notebook'}
+                    style={{
+                        color: notebook.isPinned ? 'var(--accent-primary)' : 'var(--text-muted)',
+                    }}
+                >
+                    <svg
+                        className="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill={notebook.isPinned ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        strokeWidth={notebook.isPinned ? 0 : 1.5}
+                        style={{
+                            filter: notebook.isPinned
+                                ? 'drop-shadow(0 0 6px var(--accent-glow))'
+                                    .replace(')', '') + ')' // hack to prevent syntax highlighting issues in some editors
+                                : 'none'
+                        }}
+                    >
+                        <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
+                    </svg>
+                </button>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onMoveStart?.(notebook);
+                    }}
+                    className="p-1 rounded hover:bg-(--surface-shell-active) text-(--text-muted) hover:text-(--text-primary) transition-colors"
+                    title="Move to Stack"
+                >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </motion.div>
+);
 
 export function Sidebar({
     notebooks = [],
@@ -74,8 +212,23 @@ export function Sidebar({
     onTrashClick,
     trashCount = 0,
     showNotebooksView = false,
+    stacks = [],
+    onStackCreate,
+    onStackUpdate,
+    onStackDelete,
+    onNotebookMove,
+    selectedStackId,
+    onStackSelect,
 }: SidebarProps) {
     const [notebooksExpanded, setNotebooksExpanded] = useState(true);
+    const [stacksExpanded, setStacksExpanded] = useState<Record<string, boolean>>({});
+    const [isCreateStackModalOpen, setIsCreateStackModalOpen] = useState(false);
+    const [stackToDelete, setStackToDelete] = useState<Stack | null>(null);
+    const [stackToRename, setStackToRename] = useState<Stack | null>(null);
+    const [notebookToMove, setNotebookToMove] = useState<Notebook | null>(null);
+    const [newStackName, setNewStackName] = useState('');
+    const [renamedStackName, setRenamedStackName] = useState('');
+
     const [tagsExpanded, setTagsExpanded] = useState(true);
     const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -114,14 +267,87 @@ export function Sidebar({
         [tags]
     );
 
-    const sortedNotebooks = useMemo(() =>
-        [...notebooks].sort((a, b) => {
+    // Group notebooks by stack
+    const { unstackedNotebooks, notebooksByStack } = useMemo(() => {
+        const unstacked: Notebook[] = [];
+        const byStack: Record<string, Notebook[]> = {};
+
+        notebooks.forEach(notebook => {
+            const stackId = notebook.stackId;
+            if (stackId) {
+                if (!byStack[stackId]) byStack[stackId] = [];
+                byStack[stackId].push(notebook);
+            } else {
+                unstacked.push(notebook);
+            }
+        });
+
+        return { unstackedNotebooks: unstacked, notebooksByStack: byStack };
+    }, [notebooks]);
+
+    const sortedUnstackedNotebooks = useMemo(() =>
+        [...unstackedNotebooks].sort((a, b) => {
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
-            return 0;
+            return a.name.localeCompare(b.name);
         }),
-        [notebooks]
+        [unstackedNotebooks]
     );
+
+    const sortedStacks = useMemo(() =>
+        [...stacks].sort((a, b) => a.name.localeCompare(b.name)),
+        [stacks]
+    );
+
+    const [isCreatingStack, setIsCreatingStack] = useState(false);
+
+    // Stack handlers
+    const handleCreateStack = async (name?: string) => {
+        if (isCreatingStack) return;
+        const stackName = typeof name === 'string' ? name : newStackName;
+        if (!onStackCreate || !stackName.trim()) return;
+        setIsCreatingStack(true);
+        try {
+            await onStackCreate(stackName);
+            setNewStackName('');
+            setIsCreateStackModalOpen(false);
+        } catch (error) {
+            console.error('Failed to create stack:', error);
+        } finally {
+            setIsCreatingStack(false);
+        }
+    };
+
+    const handleRenameStack = async () => {
+        if (!stackToRename || !onStackUpdate) return;
+        try {
+            await onStackUpdate(stackToRename.id, { name: renamedStackName });
+            setStackToRename(null);
+            setRenamedStackName('');
+        } catch (error) {
+            console.error('Failed to rename stack:', error);
+        }
+    };
+
+    const handleDeleteStack = async () => {
+        if (!stackToDelete || !onStackDelete) return;
+        try {
+            await onStackDelete(stackToDelete.id);
+            setStackToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete stack:', error);
+        }
+    };
+
+    const handleMoveNotebook = async (stackId: string | null) => {
+        if (!notebookToMove || !onNotebookMove) return;
+        try {
+            await onNotebookMove(notebookToMove.id, stackId);
+            setNotebookToMove(null);
+        } catch (error) {
+            console.error('Failed to move notebook:', error);
+        }
+    };
 
     const handleNotebookClick = useCallback((id: string | null) => {
         onNotebookSelect?.(id);
@@ -152,14 +378,14 @@ export function Sidebar({
                 style={{ background: 'var(--surface-shell)' }}
             >
                 {/* All Notes */}
-                <div className="p-3 md:p-4">
+                <div className="p-2">
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                             onAllNotesClick?.();
                             onItemClick?.();
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] font-medium transition-all duration-200"
                         style={{
                             background: !selectedNotebookId && !selectedTagId && !showNotebooksView
                                 ? 'var(--sidebar-selection-bg)'
@@ -192,35 +418,38 @@ export function Sidebar({
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto px-3 md:px-4 hide-scrollbar">
+                <div className="flex-1 overflow-y-auto px-2 hide-scrollbar">
                     {/* Notebooks Section */}
                     <div className="mb-4">
-                        <button
-                            onClick={() => {
-                                setNotebooksExpanded(!notebooksExpanded);
-                                onNotebooksViewToggle?.();
-                                onItemClick?.();
-                            }}
-                            className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            <span className="flex items-center gap-2">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                                Notebooks
-                            </span>
-                            <motion.svg
-                                animate={{ rotate: notebooksExpanded ? 0 : -90 }}
-                                transition={{ duration: 0.2 }}
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                        <div className="w-full flex items-center justify-between gap-1 pr-2 mb-1 group/header">
+                            <button
+                                onClick={() => {
+                                    setNotebooksExpanded(!notebooksExpanded);
+                                    onNotebooksViewToggle?.();
+                                    onItemClick?.();
+                                }}
+                                className="flex-1 flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-(--text-primary)"
+                                style={{ color: 'var(--text-muted)' }}
                             >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </motion.svg>
-                        </button>
+                                <span className="flex items-center gap-2">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                    Notebooks
+                                </span>
+                                <motion.svg
+                                    animate={{ rotate: notebooksExpanded ? 0 : -90 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="w-4 h-4 ml-auto"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </motion.svg>
+                            </button>
+
+                        </div>
 
                         <AnimatePresence>
                             {notebooksExpanded && (
@@ -231,11 +460,28 @@ export function Sidebar({
                                     transition={{ duration: 0.2 }}
                                     className="space-y-0.5 overflow-hidden"
                                 >
+                                    {/* Create Stack Button for clarity */}
+                                    <motion.button
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setIsCreateStackModalOpen(true)}
+                                        className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-[13px] transition-colors mb-0.5"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                    >
+                                        <div
+                                            className="w-4 h-4 rounded border border-current flex items-center justify-center opacity-60"
+                                        >
+                                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                        </div>
+                                        Create Stack
+                                    </motion.button>
+
                                     {/* New Notebook Button */}
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={onNewNotebook}
-                                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-colors"
+                                        onClick={() => onNewNotebook?.()}
+                                        className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-[13px] transition-colors"
                                         style={{ color: 'var(--accent-primary)' }}
                                     >
                                         <div
@@ -247,103 +493,156 @@ export function Sidebar({
                                         </div>
                                         New Notebook
                                     </motion.button>
-                                    {sortedNotebooks.map((notebook, index) => (
-                                        <motion.div
-                                            key={notebook.id}
-                                            custom={index}
-                                            variants={listItemVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            onClick={() => handleNotebookClick(notebook.id)}
-                                            role="button"
-                                            tabIndex={0}
-                                            className="group/notebook w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-sm transition-all cursor-pointer"
-                                            style={{
-                                                background: selectedNotebookId === notebook.id
-                                                    ? 'var(--sidebar-selection-bg)'
-                                                    : 'transparent',
-                                                border: selectedNotebookId === notebook.id
-                                                    ? '1px solid var(--sidebar-selection-border)'
-                                                    : '1px solid transparent',
-                                                boxShadow: selectedNotebookId === notebook.id
-                                                    ? '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                                                    : 'none',
-                                                color: selectedNotebookId === notebook.id
-                                                    ? 'var(--text-on-shell, var(--text-primary))'
-                                                    : 'var(--text-on-shell-secondary, var(--text-secondary))'
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div onClick={(e) => e.stopPropagation()}>
-                                                    <IconButton
-                                                        icon={notebook.icon}
-                                                        onIconChange={(icon) => onNotebookIconChange?.(notebook.id, icon)}
-                                                        size="sm"
-                                                        placeholder={
-                                                            <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                                            </svg>
-                                                        }
-                                                    />
-                                                </div>
-                                                <span className="truncate">{notebook.name}</span>
-                                                {/* 4-point star icon for pinned notebooks - theme aware */}
-                                                {notebook.isPinned && (
-                                                    <span
-                                                        className="shrink-0 ml-1 transition-all duration-300"
-                                                        style={{
-                                                            color: 'var(--accent-primary)',
-                                                            filter: 'drop-shadow(0 0 3px var(--accent-glow))'
-                                                        }}
-                                                    >
-                                                        <svg
-                                                            className="w-3 h-3"
-                                                            viewBox="0 0 24 24"
-                                                            fill="currentColor"
-                                                        >
-                                                            <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
-                                                        </svg>
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {/* Note count / Pin toggle - smooth transition */}
-                                            <div className="relative flex items-center justify-center min-w-[24px]">
-                                                {/* Note count - fades out on hover */}
-                                                <span
-                                                    className="text-xs tabular-nums transition-all duration-200 ease-out group-hover/notebook:opacity-0 group-hover/notebook:scale-75"
-                                                    style={{ color: 'var(--text-muted)' }}
-                                                >
-                                                    {notebook.noteCount}
-                                                </span>
-                                                {/* Pin button - fades in on hover, positioned absolutely to avoid overlap */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onNotebookPinToggle?.(notebook.id);
-                                                    }}
-                                                    className="absolute inset-0 flex items-center justify-center opacity-0 scale-75 group-hover/notebook:opacity-100 group-hover/notebook:scale-100 transition-all duration-200 ease-out hover:scale-110 active:scale-95"
-                                                    title={notebook.isPinned ? 'Unpin notebook' : 'Pin notebook'}
+                                    {sortedStacks.map((stack) => {
+                                        const stackNotebooks = notebooksByStack?.[stack.id] || [];
+                                        const isExpanded = stacksExpanded[stack.id] ?? false;
+
+                                        return (
+                                            <div key={stack.id} className="space-y-0.5">
+                                                {/* Stack Header */}
+                                                <div
+                                                    className="group/stack w-full flex items-center justify-between px-2 py-1 rounded-lg text-[13px] transition-all cursor-pointer hover:bg-(--surface-shell-hover)"
                                                     style={{
-                                                        color: notebook.isPinned ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                                        background: selectedStackId === stack.id
+                                                            ? 'var(--sidebar-selection-bg)'
+                                                            : 'transparent',
+                                                        border: selectedStackId === stack.id
+                                                            ? '1px solid var(--sidebar-selection-border)'
+                                                            : '1px solid transparent',
+                                                        color: selectedStackId === stack.id
+                                                            ? 'var(--text-on-shell, var(--text-primary))'
+                                                            : 'var(--text-on-shell-secondary, var(--text-secondary))'
                                                     }}
+                                                    onClick={() => onStackSelect?.(stack.id)}
                                                 >
-                                                    <svg
-                                                        className="w-4 h-4 transition-all duration-200"
-                                                        viewBox="0 0 24 24"
-                                                        fill={notebook.isPinned ? 'currentColor' : 'none'}
-                                                        stroke="currentColor"
-                                                        strokeWidth={notebook.isPinned ? 0 : 1.5}
-                                                        style={{
-                                                            filter: notebook.isPinned
-                                                                ? 'drop-shadow(0 0 6px var(--accent-glow))'
-                                                                : 'none'
-                                                        }}
-                                                    >
-                                                        <path d="M12 0c1.32 5.22 4.34 8.52 9.78 9.6.12.02.12.2 0 .24-5 1.32-8.38 4.1-9.64 9.26-.04.12-.22.12-.26 0C10.84 14.1 7.32 10.68.1 9.96c-.14-.02-.14-.22 0-.24C7.14 8.52 10.88 5.4 11.74.1c.02-.12.2-.14.26 0z" />
-                                                    </svg>
-                                                </button>
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <motion.button
+                                                            whileTap={{ scale: 0.9 }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setStacksExpanded(prev => ({ ...prev, [stack.id]: !prev[stack.id] }));
+                                                            }}
+                                                            className="p-0.5 rounded hover:bg-(--surface-shell-active) transition-colors"
+                                                        >
+                                                            <motion.svg
+                                                                animate={{ rotate: isExpanded ? 90 : 0 }}
+                                                                className="w-3 h-3 text-(--text-muted)"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                            </motion.svg>
+                                                        </motion.button>
+                                                        <div onClick={(e) => e.stopPropagation()}>
+                                                            <IconButton
+                                                                icon={stack.icon}
+                                                                onIconChange={(icon) => onStackUpdate?.(stack.id, { icon })}
+                                                                size="sm"
+                                                                placeholder={
+                                                                    <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                                    </svg>
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <span className="font-semibold truncate">
+                                                            {stack.name}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Stack Actions */}
+                                                    <div className="opacity-0 group-hover/stack:opacity-100 flex items-center gap-1 transition-opacity">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setStackToRename(stack);
+                                                                setRenamedStackName(stack.name);
+                                                            }}
+                                                            className="p-1 rounded hover:bg-(--surface-shell-active) text-(--text-muted) hover:text-(--text-primary) transition-colors"
+                                                            title="Rename stack"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setStackToDelete(stack);
+                                                            }}
+                                                            className="p-1 rounded hover:bg-(--surface-shell-active) text-(--text-muted) hover:text-(--warning-color) transition-colors"
+                                                            title="Delete stack"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stack Notebooks */}
+                                                <AnimatePresence>
+                                                    {isExpanded && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="pl-4 space-y-0.5"
+                                                        >
+                                                            <div className="px-3 py-1">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onNewNotebook?.(stack.id);
+                                                                    }}
+                                                                    className="flex items-center gap-2 text-xs font-medium transition-colors hover:text-(--accent-primary)"
+                                                                    style={{ color: 'var(--text-muted)' }}
+                                                                >
+                                                                    <div className="w-3.5 h-3.5 rounded border border-dashed border-current flex items-center justify-center">
+                                                                        <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    New Notebook
+                                                                </button>
+                                                            </div>
+                                                            {stackNotebooks.map((notebook, index) => (
+                                                                <NotebookItem
+                                                                    key={notebook.id}
+                                                                    notebook={notebook}
+                                                                    index={index}
+                                                                    selectedNotebookId={selectedNotebookId}
+                                                                    onSelect={handleNotebookClick}
+                                                                    onPinToggle={onNotebookPinToggle}
+                                                                    onIconChange={onNotebookIconChange}
+                                                                    onMoveStart={setNotebookToMove}
+                                                                />
+                                                            ))}
+                                                            {stackNotebooks.length === 0 && (
+                                                                <div className="px-3 py-1.5 text-xs text-(--text-muted) italic">
+                                                                    Empty stack
+                                                                </div>
+                                                            )}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
-                                        </motion.div>
+                                        );
+                                    })}
+
+                                    {/* Unstacked Notebooks */}
+                                    {sortedUnstackedNotebooks.map((notebook, index) => (
+                                        <NotebookItem
+                                            key={notebook.id}
+                                            notebook={notebook}
+                                            index={index}
+                                            selectedNotebookId={selectedNotebookId}
+                                            onSelect={handleNotebookClick}
+                                            onPinToggle={onNotebookPinToggle}
+                                            onIconChange={onNotebookIconChange}
+                                            onMoveStart={setNotebookToMove}
+                                        />
                                     ))}
                                 </motion.div>
                             )}
@@ -392,7 +691,7 @@ export function Sidebar({
                                                 variants={listItemVariants}
                                                 initial="hidden"
                                                 animate="visible"
-                                                className="group w-full flex items-center justify-between px-3 py-1 rounded-xl text-sm transition-all cursor-pointer"
+                                                className="group w-full flex items-center justify-between px-2 py-1 rounded-lg text-[13px] transition-all cursor-pointer"
                                                 style={{
                                                     background: selectedTagId === tag.id
                                                         ? 'var(--sidebar-selection-bg)'
@@ -411,7 +710,7 @@ export function Sidebar({
                                                 role="button"
                                                 tabIndex={0}
                                             >
-                                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                     <span
                                                         className="w-2 h-2 rounded-full shrink-0"
                                                         style={{ background: 'var(--accent-primary)' }}
@@ -469,7 +768,7 @@ export function Sidebar({
 
                 {/* Bottom - Settings & Trash */}
                 <div
-                    className="p-3 md:p-4 space-y-2"
+                    className="p-2 space-y-1"
                     style={{ borderTop: '1px solid var(--border-subtle)' }}
                 >
                     {/* Settings Section - Collapsible */}
@@ -478,7 +777,7 @@ export function Sidebar({
                         <motion.button
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] font-medium transition-colors"
                             style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
                             aria-label="Settings menu"
                             aria-expanded={isProfileMenuOpen}
@@ -524,7 +823,7 @@ export function Sidebar({
                                             onClick={() => {
                                                 setIsAddToHomeScreenModalOpen(true);
                                             }}
-                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors"
+                                            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] transition-colors"
                                             style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
                                             onMouseEnter={(e) => {
                                                 e.currentTarget.style.color = 'var(--accent-primary)';
@@ -549,7 +848,7 @@ export function Sidebar({
                                             whileHover={{ x: 2 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={handleReportIssue}
-                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors"
+                                            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] transition-colors"
                                             style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
                                             onMouseEnter={(e) => {
                                                 e.currentTarget.style.color = 'var(--accent-primary)';
@@ -572,7 +871,7 @@ export function Sidebar({
                                         {/* User Account (if logged in) - at the bottom with sign out */}
                                         {!loading && user && (
                                             <div
-                                                className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors cursor-default mt-2 pt-2"
+                                                className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors cursor-default mt-2 pt-2"
                                                 style={{
                                                     color: 'var(--text-on-shell-secondary, var(--text-secondary))',
                                                     borderTop: '1px solid var(--border-subtle)'
@@ -592,7 +891,7 @@ export function Sidebar({
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                     </svg>
                                                 </div>
-                                                <span className="flex-1 text-left text-sm truncate">{user.email}</span>
+                                                <span className="flex-1 text-left text-[13.5px] truncate">{user.email}</span>
                                                 <button
                                                     onClick={handleSignOut}
                                                     className="p-1.5 rounded-lg transition-colors"
@@ -614,16 +913,14 @@ export function Sidebar({
 
                     {/* Trash Button */}
                     <motion.button
+                        whileHover={{ x: 2 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            onTrashClick?.();
-                            onItemClick?.();
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                        onClick={() => onTrashClick?.()}
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] transition-colors"
                         style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
                     >
                         <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center"
                             style={{ background: 'var(--surface-shell-hover)' }}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -678,6 +975,117 @@ export function Sidebar({
                 </div>
             </Modal>
 
+            {/* Create Stack Modal */}
+            <Modal
+                isOpen={isCreateStackModalOpen}
+                onClose={() => setIsCreateStackModalOpen(false)}
+                title="Create New Stack"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                            Stack Name
+                        </label>
+                        <Input
+                            value={newStackName}
+                            onChange={(e) => setNewStackName(e.target.value)}
+                            placeholder="e.g., Personal, Work"
+                            autoFocus
+                            disabled={isCreatingStack}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleCreateStack();
+                            }}
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsCreateStackModalOpen(false)}
+                            disabled={isCreatingStack}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => handleCreateStack()}
+                            disabled={!newStackName.trim() || isCreatingStack}
+                        >
+                            {isCreatingStack ? 'Creating...' : 'Create'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Rename Stack Modal */}
+            <Modal
+                isOpen={!!stackToRename}
+                onClose={() => setStackToRename(null)}
+                title="Rename Stack"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                            Stack Name
+                        </label>
+                        <Input
+                            value={renamedStackName}
+                            onChange={(e) => setRenamedStackName(e.target.value)}
+                            placeholder="Enter new name"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameStack();
+                            }}
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setStackToRename(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleRenameStack}
+                            disabled={!renamedStackName.trim()}
+                        >
+                            Save
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Delete Stack Modal */}
+            <Modal
+                isOpen={!!stackToDelete}
+                onClose={() => setStackToDelete(null)}
+                title="Delete Stack"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        Are you sure you want to delete the stack <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{stackToDelete?.name}</span>?
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                        The notebooks inside will be unstacked, not deleted.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setStackToDelete(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="danger"
+                            onClick={handleDeleteStack}
+                        >
+                            Delete
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Report Issue Modal */}
             <ReportIssueModal
                 isOpen={isReportIssueModalOpen}
@@ -685,6 +1093,64 @@ export function Sidebar({
                 userEmail={user?.email || undefined}
                 userId={user?.id || undefined}
             />
+
+            {/* Move Notebook Modal */}
+            <Modal
+                isOpen={!!notebookToMove}
+                onClose={() => setNotebookToMove(null)}
+                title="Move Notebook"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        Move <strong style={{ color: 'var(--text-primary)' }}>{notebookToMove?.name}</strong> to:
+                    </p>
+                    <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
+                        {/* Option to remove from stack (if in one) */}
+                        {notebookToMove?.stackId && (
+                            <button
+                                onClick={() => handleMoveNotebook(null)}
+                                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-(--surface-shell-hover)"
+                                style={{ color: 'var(--text-primary)' }}
+                            >
+                                <div className="w-5 h-5 flex items-center justify-center text-(--text-muted)">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-2 4h-4m2-8H8" />
+                                    </svg>
+                                </div>
+                                Remove from Stack
+                            </button>
+                        )}
+
+                        {/* List of stacks */}
+                        {sortedStacks.map(stack => (
+                            <button
+                                key={stack.id}
+                                onClick={() => handleMoveNotebook(stack.id)}
+                                disabled={notebookToMove?.stackId === stack.id}
+                                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-(--surface-shell-hover) disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{
+                                    color: notebookToMove?.stackId === stack.id ? 'var(--text-muted)' : 'var(--text-primary)',
+                                    background: notebookToMove?.stackId === stack.id ? 'var(--surface-shell)' : 'transparent'
+                                }}
+                            >
+                                <div className="w-5 h-5 flex items-center justify-center text-(--text-muted)">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                {stack.name}
+                            </button>
+                        ))}
+
+                        {sortedStacks.length === 0 && !notebookToMove?.stackId && (
+                            <div className="text-center py-4 text-xs text-(--text-muted)">
+                                No stacks created yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Modal>
 
             {/* Add to Home Screen Modal */}
             <AddToHomeScreenModal

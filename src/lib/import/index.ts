@@ -15,6 +15,7 @@ export {
 export type { ExtractedResource, ExtractResourcesOptions } from './resource-extractor';
 export {
     importEnex,
+    importParsedData,
     getImportJobStatus,
     listImportJobs,
 } from './import-orchestrator';

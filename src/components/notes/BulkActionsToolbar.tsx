@@ -80,7 +80,7 @@ export function BulkActionsToolbar({
                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] disabled:opacity-50 hidden md:block"
                         style={{
                             background: 'var(--surface-shell)',
-                            color: 'var(--text-secondary)',
+                            color: 'var(--text-on-shell)',
                             border: '1px solid var(--border-subtle)',
                         }}
                     >
@@ -98,7 +98,7 @@ export function BulkActionsToolbar({
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
                             style={{
                                 background: 'var(--surface-shell)',
-                                color: 'var(--text-primary)',
+                                color: 'var(--text-on-shell)',
                                 border: '1px solid var(--border-primary)',
                             }}
                             title="Move to folder"

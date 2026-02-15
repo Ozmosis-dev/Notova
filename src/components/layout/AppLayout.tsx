@@ -20,6 +20,13 @@ interface Tag {
     noteCount: number;
 }
 
+interface Stack {
+    id: string;
+    name: string;
+    icon?: string | null;
+    userId?: string;
+}
+
 interface AppLayoutProps {
     children: ReactNode;
     // Sidebar props
@@ -29,7 +36,7 @@ interface AppLayoutProps {
     selectedTagId?: string | null;
     onNotebookSelect?: (id: string | null) => void;
     onTagSelect?: (id: string | null) => void;
-    onNewNotebook?: () => void;
+    onNewNotebook?: (stackId?: string) => void;
     onNotebookIconChange?: (id: string, icon: string | null) => void;
     onNotebookPinToggle?: (id: string) => void;
     onNotebooksViewToggle?: () => void;
@@ -41,6 +48,14 @@ interface AppLayoutProps {
     // Header props
     onImportClick?: () => void;
     onSearch?: (query: string) => void;
+    // Stack props
+    stacks?: Stack[];
+    onStackCreate?: (name: string) => Promise<void>;
+    onStackUpdate?: (id: string, updates: { name?: string; icon?: string | null }) => Promise<void>;
+    onStackDelete?: (id: string) => Promise<void>;
+    onNotebookMove?: (notebookId: string, stackId: string | null) => Promise<void>;
+    selectedStackId?: string | null;
+    onStackSelect?: (id: string | null) => void;
 }
 
 export function AppLayout({
@@ -62,6 +77,13 @@ export function AppLayout({
     showNotebooksView = false,
     onImportClick,
     onSearch,
+    stacks = [],
+    onStackCreate,
+    onStackUpdate,
+    onStackDelete,
+    onNotebookMove,
+    selectedStackId,
+    onStackSelect,
 }: AppLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -206,6 +228,13 @@ export function AppLayout({
                             onTagSelect?.(id);
                             handleSidebarItemClick();
                         }}
+                        stacks={stacks}
+                        onStackCreate={onStackCreate}
+                        onStackUpdate={onStackUpdate}
+                        onStackDelete={onStackDelete}
+                        onNotebookMove={onNotebookMove}
+                        selectedStackId={selectedStackId}
+                        onStackSelect={onStackSelect}
                         onNewNotebook={onNewNotebook}
                         onNotebookIconChange={onNotebookIconChange}
                         onNotebookPinToggle={onNotebookPinToggle}

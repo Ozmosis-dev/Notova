@@ -14,6 +14,16 @@ interface Notebook {
     noteCount: number;
     createdAt: string;
     updatedAt: string;
+    stackId?: string | null;
+}
+
+interface Stack {
+    id: string;
+    name: string;
+    icon?: string | null;
+    userId: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface Tag {
@@ -38,14 +48,15 @@ interface NotePreview {
     notebook?: { id: string; name: string };
 }
 
-interface AppDataOptions {
+export interface AppDataOptions {
     notebookId?: string | null;
     tagId?: string | null;
     isTrash?: boolean;
 }
 
-interface AppData {
+export interface AppData {
     notebooks: Notebook[];
+    stacks: Stack[];
     tags: Tag[];
     notes: NotePreview[];
     trashCount: number;
@@ -116,6 +127,7 @@ export function useAppData(options: AppDataOptions = {}) {
 
     // Memoized values to prevent unnecessary re-renders
     const notebooks = useMemo(() => data?.notebooks ?? [], [data?.notebooks]);
+    const stacks = useMemo(() => data?.stacks ?? [], [data?.stacks]);
     const tags = useMemo(() => data?.tags ?? [], [data?.tags]);
     const notes = useMemo(() => data?.notes ?? [], [data?.notes]);
 
@@ -123,6 +135,7 @@ export function useAppData(options: AppDataOptions = {}) {
 
     return {
         notebooks,
+        stacks,
         tags,
         notes,
         trashCount,
@@ -136,7 +149,7 @@ export function useAppData(options: AppDataOptions = {}) {
 /**
  * Individual data mutations with optimistic update support
  */
-export function useAppDataMutations() {
+export function useAppDataMutations(fallbackData?: AppData) {
     // Refetch all data
     const refetchAll = useCallback(async () => {
         await mutate(
@@ -177,7 +190,7 @@ export function useAppDataMutations() {
             {
                 // Optimistic data - shown immediately before API completes
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [], trashCount: 0 };
+                    if (!currentData) return { notebooks: [], stacks: [], tags: [], notes: [], trashCount: 0 };
                     return {
                         ...currentData,
                         notes: currentData.notes.map(note =>
@@ -227,7 +240,7 @@ export function useAppDataMutations() {
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [tempNote], trashCount: 0 };
+                    if (!currentData) return { notebooks: [], stacks: [], tags: [], notes: [tempNote], trashCount: 0 };
                     return {
                         ...currentData,
                         notes: [tempNote, ...currentData.notes],
@@ -255,6 +268,9 @@ export function useAppDataMutations() {
     ): Promise<Notebook | null> => {
         let createdNotebook: Notebook | null = null;
 
+        // Capture current data state for fallback
+        // fallbackData is passed from the hook argument
+
         await mutate(
             (key) => typeof key === 'string' && key.startsWith('/api/app-data'),
             async (currentData: AppData | undefined) => {
@@ -266,17 +282,27 @@ export function useAppDataMutations() {
                     throw new Error('Failed to create notebook');
                 }
 
+                // Return with the real notebook (replacing temp)
                 return {
                     ...currentData,
-                    notebooks: [...currentData.notebooks, createdNotebook]
+                    notebooks: [createdNotebook, ...currentData.notebooks.filter(nb => nb.id !== tempNotebook.id)]
                 };
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [tempNotebook], tags: [], notes: [], trashCount: 0 };
+                    // Use current data or fallback to existing data structure with new notebook
+                    // This is critical when creating a notebook and immediately switching to it (new SWR key)
+                    const baseData = currentData || fallbackData || {
+                        notebooks: [],
+                        stacks: [],
+                        tags: [],
+                        notes: [],
+                        trashCount: 0
+                    };
+
                     return {
-                        ...currentData,
-                        notebooks: [...currentData.notebooks, tempNotebook]
+                        ...baseData,
+                        notebooks: [tempNotebook, ...baseData.notebooks]
                     };
                 },
                 rollbackOnError: true,
@@ -285,7 +311,7 @@ export function useAppDataMutations() {
         );
 
         return createdNotebook;
-    }, []);
+    }, [fallbackData]);
 
     /**
      * Optimistically update a notebook property
@@ -313,7 +339,7 @@ export function useAppDataMutations() {
             },
             {
                 optimisticData: (currentData: AppData | undefined) => {
-                    if (!currentData) return { notebooks: [], tags: [], notes: [], trashCount: 0 };
+                    if (!currentData) return { notebooks: [], stacks: [], tags: [], notes: [], trashCount: 0 };
                     return {
                         ...currentData,
                         notebooks: currentData.notebooks.map(nb =>
@@ -329,12 +355,149 @@ export function useAppDataMutations() {
         );
     }, []);
 
+    /**
+     * Optimistically add a new stack
+     */
+    const optimisticAddStack = useCallback(async (
+        tempStack: Stack,
+        apiCall: () => Promise<Stack | null>
+    ): Promise<Stack | null> => {
+        let createdStack: Stack | null = null;
+
+        await mutate(
+            (key) => typeof key === 'string' && key.startsWith('/api/app-data'),
+            async (currentData: AppData | undefined) => {
+                if (!currentData) return currentData;
+
+                createdStack = await apiCall();
+
+                if (!createdStack) {
+                    throw new Error('Failed to create stack');
+                }
+
+                // Return with the real stack (replacing temp)
+                return {
+                    ...currentData,
+                    stacks: [createdStack, ...currentData.stacks.filter(s => s.id !== tempStack.id)]
+                };
+            },
+            {
+                optimisticData: (currentData: AppData | undefined) => {
+                    if (!currentData) return { notebooks: [], stacks: [tempStack], tags: [], notes: [], trashCount: 0 };
+                    return {
+                        ...currentData,
+                        stacks: [tempStack, ...currentData.stacks]
+                    };
+                },
+                rollbackOnError: true,
+                revalidate: true,
+            }
+        );
+
+        return createdStack;
+    }, []);
+
+    /**
+     * Optimistically update a stack
+     */
+    const optimisticUpdateStack = useCallback(async (
+        stackId: string,
+        updates: Partial<Stack>,
+        apiCall: () => Promise<unknown>
+    ) => {
+        await mutate(
+            (key) => typeof key === 'string' && key.startsWith('/api/app-data'),
+            async (currentData: AppData | undefined) => {
+                if (!currentData) return currentData;
+
+                await apiCall();
+
+                return {
+                    ...currentData,
+                    stacks: currentData.stacks.map(s =>
+                        s.id === stackId
+                            ? { ...s, ...updates, updatedAt: new Date().toISOString() }
+                            : s
+                    )
+                };
+            },
+            {
+                optimisticData: (currentData: AppData | undefined) => {
+                    if (!currentData) return { notebooks: [], stacks: [], tags: [], notes: [], trashCount: 0 };
+                    return {
+                        ...currentData,
+                        stacks: currentData.stacks.map(s =>
+                            s.id === stackId
+                                ? { ...s, ...updates, updatedAt: new Date().toISOString() }
+                                : s
+                        )
+                    };
+                },
+                rollbackOnError: true,
+                revalidate: false,
+            }
+        );
+    }, []);
+
+    /**
+     * Optimistically delete a stack
+     * Note: This usually involves updating notebooks to remove stackId as well,
+     * but strictly speaking for the stack list itself, we just remove the stack.
+     * The backend handles unstacking notebooks.
+     * Optimistically, we might want to unstack notebooks locally too?
+     * For now, just removing the stack from the list.
+     */
+    const optimisticDeleteStack = useCallback(async (
+        stackId: string,
+        apiCall: () => Promise<unknown>
+    ) => {
+        await mutate(
+            (key) => typeof key === 'string' && key.startsWith('/api/app-data'),
+            async (currentData: AppData | undefined) => {
+                if (!currentData) return currentData;
+
+                await apiCall();
+
+                // On success, notebooks should be unstacked.
+                // We'll rely on revalidation or manual update of notebooks if needed.
+                // But typically delete returns success.
+                // Ideally we return updated notebooks too.
+                // For simple optimistic UI, we remove stack.
+                // We should also update notebooks locally to set stackId=null for those in this stack.
+                return {
+                    ...currentData,
+                    stacks: currentData.stacks.filter(s => s.id !== stackId),
+                    notebooks: currentData.notebooks.map(nb =>
+                        nb.stackId === stackId ? { ...nb, stackId: null } : nb
+                    )
+                };
+            },
+            {
+                optimisticData: (currentData: AppData | undefined) => {
+                    if (!currentData) return { notebooks: [], stacks: [], tags: [], notes: [], trashCount: 0 };
+                    return {
+                        ...currentData,
+                        stacks: currentData.stacks.filter(s => s.id !== stackId),
+                        notebooks: currentData.notebooks.map(nb =>
+                            nb.stackId === stackId ? { ...nb, stackId: null } : nb
+                        )
+                    };
+                },
+                rollbackOnError: true,
+                revalidate: true,
+            }
+        );
+    }, []);
+
     return {
         refetchAll,
         optimisticUpdateNote,
         optimisticAddNote,
         optimisticAddNotebook,
         optimisticUpdateNotebook,
+        optimisticAddStack,
+        optimisticUpdateStack,
+        optimisticDeleteStack,
     };
 }
 

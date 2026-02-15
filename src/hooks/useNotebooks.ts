@@ -9,6 +9,7 @@ interface Notebook {
     noteCount: number;
     createdAt: string;
     updatedAt: string;
+    stackId?: string | null;
 }
 
 // TODO: Get from auth context
@@ -67,6 +68,7 @@ interface CreateNotebookData {
     isDefault?: boolean;
     icon?: string;
     cardColor?: string;
+    stackId?: string;
 }
 
 interface UseNotebookActionsReturn {

@@ -29,8 +29,8 @@ interface BatchImportResult {
 type ImportStatus = 'idle' | 'uploading' | 'processing' | 'complete' | 'error';
 
 // Import limits for context and accuracy
-const MAX_FILES = 5;
-const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_FILES = 50;
+const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_INDIVIDUAL_SIZE = 100 * 1024 * 1024; // 100MB
 
 export function ImportModal({ isOpen, onClose }: ImportModalProps) {
@@ -44,10 +44,12 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const validateFiles = (fileList: File[]): { valid: boolean; error?: string } => {
-        // Check for .enex file type
-        const invalidFiles = fileList.filter(f => !f.name.endsWith('.enex'));
+        // Check for supported file types
+        const validExtensions = ['.enex', '.pdf', '.docx', '.txt'];
+        const invalidFiles = fileList.filter(f => !validExtensions.some(ext => f.name.toLowerCase().endsWith(ext)));
+
         if (invalidFiles.length > 0) {
-            return { valid: false, error: `Please select only .enex files. Invalid: ${invalidFiles.map(f => f.name).join(', ')}` };
+            return { valid: false, error: `Please select supported files (.enex, .pdf, .docx, .txt). Invalid: ${invalidFiles.map(f => f.name).join(', ')}` };
         }
 
         // Check individual file size
@@ -235,7 +237,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Import from Evernote"
+            title="Import"
             size="md"
         >
             <div className="space-y-6">
@@ -265,15 +267,15 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             </svg>
                         </div>
                         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Drop your .enex files here
+                            Drop your files here
                         </p>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                            or click to browse (supports multiple files)
+                            or click to browse (.enex, .pdf, .docx, .txt)
                         </p>
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept=".enex"
+                            accept=".enex,.pdf,.docx,.txt"
                             multiple
                             onChange={handleFileSelect}
                             className="hidden"

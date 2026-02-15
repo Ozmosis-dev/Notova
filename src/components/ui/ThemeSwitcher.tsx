@@ -56,10 +56,10 @@ export function ThemeSwitcher() {
 
     if (!mounted) {
         return (
-            <div className="px-3 py-2.5">
-                <div className="flex items-center gap-3 opacity-50">
+            <div className="px-2 py-1.5">
+                <div className="flex items-center gap-1.5 opacity-50">
                     <div className="w-5 h-5 rounded-md bg-current opacity-20" />
-                    <span className="text-sm">Theme</span>
+                    <span className="text-[13.5px]">Theme</span>
                 </div>
             </div>
         );
@@ -75,7 +75,7 @@ export function ThemeSwitcher() {
                 whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13.5px] transition-colors"
                 style={{ color: 'var(--text-on-shell-secondary, var(--text-secondary))' }}
             >
                 <div
@@ -84,7 +84,7 @@ export function ThemeSwitcher() {
                 >
                     <CurrentIcon size={14} />
                 </div>
-                <span className="text-sm flex-1 text-left">Theme</span>
+                <span className="text-[13.5px] flex-1 text-left">Theme</span>
                 <span
                     className="text-xs px-2 py-0.5 rounded-md font-medium"
                     style={{ background: 'var(--surface-shell-hover)', color: 'var(--accent-primary)' }}
@@ -137,7 +137,7 @@ export function ThemeSwitcher() {
                                             className={`
                                             relative p-2.5 rounded-lg transition-all duration-200
                                             ${isSelected
-                                                    ? 'ring-2 ring-[var(--accent-primary)] ring-offset-1 ring-offset-[var(--surface-shell)]'
+                                                    ? 'ring-2 ring-(--accent-primary) ring-offset-1 ring-offset-(--surface-shell)'
                                                     : 'hover:scale-[1.02]'}
                                         `}
                                             style={{

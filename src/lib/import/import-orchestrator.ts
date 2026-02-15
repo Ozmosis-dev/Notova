@@ -78,14 +78,7 @@ export async function importEnex(
     content: string | Buffer,
     options: ImportOptions
 ): Promise<ImportResult> {
-    const {
-        userId,
-        filename,
-        notebookId,
-        notebookName = 'Imported Notes',
-        onProgress,
-        batchSize = 10,
-    } = options;
+    const { userId, filename } = options;
 
     // Create import job record
     const importJob = await prisma.importJob.create({
@@ -96,127 +89,14 @@ export async function importEnex(
         },
     });
 
-    const progress: ImportProgress = {
-        status: 'pending',
-        totalNotes: 0,
-        imported: 0,
-        failed: 0,
-        errors: [],
-    };
-
-    const updateProgress = (updates: Partial<ImportProgress>) => {
-        Object.assign(progress, updates);
-        onProgress?.(progress);
-    };
-
     try {
         // Parse ENEX content
-        updateProgress({ status: 'processing' });
-
         const enexExport: EnexExport = typeof content === 'string'
             ? parseEnexString(content)
             : parseEnexBuffer(content);
 
-        const totalNotes = enexExport.notes.length;
-        updateProgress({ totalNotes });
+        return importFromExport(enexExport, importJob, options);
 
-        // Update job with total notes
-        await prisma.importJob.update({
-            where: { id: importJob.id },
-            data: {
-                status: 'processing',
-                totalNotes,
-                startedAt: new Date(),
-            },
-        });
-
-        if (totalNotes === 0) {
-            await prisma.importJob.update({
-                where: { id: importJob.id },
-                data: {
-                    status: 'completed',
-                    completedAt: new Date(),
-                },
-            });
-
-            return {
-                jobId: importJob.id,
-                status: 'completed',
-                totalNotes: 0,
-                imported: 0,
-                failed: 0,
-                errors: [],
-                notebookId: notebookId || '',
-            };
-        }
-
-        // Get or create notebook
-        const notebook = await getOrCreateNotebook(userId, notebookId, notebookName);
-
-        // Process notes in batches
-        for (let i = 0; i < enexExport.notes.length; i += batchSize) {
-            const batch = enexExport.notes.slice(i, i + batchSize);
-
-            for (const note of batch) {
-                try {
-                    updateProgress({ currentNote: note.title });
-                    await importNote(note, {
-                        userId,
-                        notebookId: notebook.id,
-                        importJobId: importJob.id,
-                    });
-
-                    progress.imported++;
-                    updateProgress({});
-
-                    // Update job progress
-                    await prisma.importJob.update({
-                        where: { id: importJob.id },
-                        data: { imported: progress.imported },
-                    });
-                } catch (error) {
-                    progress.failed++;
-                    const errorMessage = `Failed to import "${note.title}": ${error instanceof Error ? error.message : 'Unknown error'
-                        }`;
-                    progress.errors.push(errorMessage);
-                    updateProgress({});
-
-                    // Update job with error
-                    await prisma.importJob.update({
-                        where: { id: importJob.id },
-                        data: {
-                            failed: progress.failed,
-                            errors: progress.errors,
-                        },
-                    });
-
-                    console.error(errorMessage);
-                }
-            }
-        }
-
-        // Mark job as completed
-        const finalStatus: ImportStatus = progress.failed === totalNotes ? 'failed' : 'completed';
-
-        await prisma.importJob.update({
-            where: { id: importJob.id },
-            data: {
-                status: finalStatus,
-                completedAt: new Date(),
-            },
-        });
-
-        updateProgress({ status: finalStatus, currentNote: undefined });
-
-        return {
-            jobId: importJob.id,
-            status: finalStatus,
-            totalNotes,
-            imported: progress.imported,
-            failed: progress.failed,
-            errors: progress.errors,
-            notebookId: notebook.id,
-        };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -229,21 +109,187 @@ export async function importEnex(
             },
         });
 
-        updateProgress({
+        return {
+            jobId: importJob.id,
             status: 'failed',
+            totalNotes: 0,
+            imported: 0,
+            failed: 0,
             errors: [errorMessage],
+            notebookId: '',
+        };
+    }
+}
+
+/**
+ * Import from an already parsed EnexExport object.
+ */
+export async function importParsedData(
+    enexExport: EnexExport,
+    options: ImportOptions
+): Promise<ImportResult> {
+    const { userId, filename } = options;
+
+    // Create import job record
+    const importJob = await prisma.importJob.create({
+        data: {
+            userId,
+            filename,
+            status: 'pending',
+        },
+    });
+
+    try {
+        return await importFromExport(enexExport, importJob, options);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        await prisma.importJob.update({
+            where: { id: importJob.id },
+            data: {
+                status: 'failed',
+                completedAt: new Date(),
+                errors: [errorMessage],
+            },
         });
 
         return {
             jobId: importJob.id,
             status: 'failed',
-            totalNotes: progress.totalNotes,
-            imported: progress.imported,
-            failed: progress.failed,
+            totalNotes: 0,
+            imported: 0,
+            failed: 0,
             errors: [errorMessage],
             notebookId: '',
         };
     }
+}
+
+async function importFromExport(
+    enexExport: EnexExport,
+    importJob: any,
+    options: ImportOptions
+): Promise<ImportResult> {
+    const {
+        userId,
+        notebookId,
+        notebookName = 'Imported Notes',
+        onProgress,
+        batchSize = 10,
+    } = options;
+
+    const progress: ImportProgress = {
+        status: 'processing',
+        totalNotes: enexExport.notes.length,
+        imported: 0,
+        failed: 0,
+        errors: [],
+    };
+
+    const updateProgress = (updates: Partial<ImportProgress>) => {
+        Object.assign(progress, updates);
+        onProgress?.(progress);
+    };
+
+    updateProgress({ totalNotes: enexExport.notes.length });
+
+    // Update job with total notes
+    await prisma.importJob.update({
+        where: { id: importJob.id },
+        data: {
+            status: 'processing',
+            totalNotes: enexExport.notes.length,
+            startedAt: new Date(),
+        },
+    });
+
+    if (enexExport.notes.length === 0) {
+        await prisma.importJob.update({
+            where: { id: importJob.id },
+            data: {
+                status: 'completed',
+                completedAt: new Date(),
+            },
+        });
+
+        return {
+            jobId: importJob.id,
+            status: 'completed',
+            totalNotes: 0,
+            imported: 0,
+            failed: 0,
+            errors: [],
+            notebookId: notebookId || '',
+        };
+    }
+
+    // Get or create notebook
+    const notebook = await getOrCreateNotebook(userId, notebookId, notebookName);
+
+    // Process notes in batches
+    for (let i = 0; i < enexExport.notes.length; i += batchSize) {
+        const batch = enexExport.notes.slice(i, i + batchSize);
+
+        for (const note of batch) {
+            try {
+                updateProgress({ currentNote: note.title });
+                await importNote(note, {
+                    userId,
+                    notebookId: notebook.id,
+                    importJobId: importJob.id,
+                });
+
+                progress.imported++;
+                updateProgress({});
+
+                // Update job progress
+                await prisma.importJob.update({
+                    where: { id: importJob.id },
+                    data: { imported: progress.imported },
+                });
+            } catch (error) {
+                progress.failed++;
+                const errorMessage = `Failed to import "${note.title}": ${error instanceof Error ? error.message : 'Unknown error'
+                    }`;
+                progress.errors.push(errorMessage);
+                updateProgress({});
+
+                // Update job with error
+                await prisma.importJob.update({
+                    where: { id: importJob.id },
+                    data: {
+                        failed: progress.failed,
+                        errors: progress.errors,
+                    },
+                });
+
+                console.error(errorMessage);
+            }
+        }
+    }
+
+    // Mark job as completed
+    const finalStatus: ImportStatus = progress.failed === enexExport.notes.length ? 'failed' : 'completed';
+
+    await prisma.importJob.update({
+        where: { id: importJob.id },
+        data: {
+            status: finalStatus,
+            completedAt: new Date(),
+        },
+    });
+
+    updateProgress({ status: finalStatus, currentNote: undefined });
+
+    return {
+        jobId: importJob.id,
+        status: finalStatus,
+        totalNotes: enexExport.notes.length,
+        imported: progress.imported,
+        failed: progress.failed,
+        errors: progress.errors,
+        notebookId: notebook.id,
+    };
 }
 
 /**

@@ -15,6 +15,7 @@ const createNotebookSchema = z.object({
     isDefault: z.boolean().optional(),
     icon: z.string().optional(),
     cardColor: z.string().optional(),
+    stackId: z.string().optional(),
 });
 
 /**
@@ -56,6 +57,7 @@ export async function GET() {
             noteCount: notebook._count.notes,
             createdAt: notebook.createdAt,
             updatedAt: notebook.updatedAt,
+            stackId: notebook.stackId,
         }));
 
         return NextResponse.json(result);
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { name, isDefault, icon, cardColor } = parseResult.data;
+        const { name, isDefault, icon, cardColor, stackId } = parseResult.data;
 
         // If setting as default, unset other defaults
         if (isDefault) {
@@ -113,6 +115,7 @@ export async function POST(request: NextRequest) {
                 userId,
                 icon,
                 cardColor,
+                stackId,
             },
         });
 

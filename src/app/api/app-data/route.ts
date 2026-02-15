@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         const isTrash = searchParams.get('isTrash') === 'true';
 
         // Execute all queries in parallel for maximum performance
-        const [notebooks, tags, notes, trashCount] = await Promise.all([
+        const [notebooks, stacks, tags, notes, trashCount] = await Promise.all([
             // Fetch notebooks with note counts
             prisma.notebook.findMany({
                 where: { userId },
@@ -45,6 +45,12 @@ export async function GET(request: NextRequest) {
                     { isDefault: 'desc' },
                     { name: 'asc' },
                 ],
+            }),
+
+            // Fetch stacks
+            prisma.stack.findMany({
+                where: { userId },
+                orderBy: { name: 'asc' },
             }),
 
             // Fetch tags with note counts
@@ -137,11 +143,11 @@ export async function GET(request: NextRequest) {
                 });
             })(),
 
-            // Count trashed notes (for sidebar badge)
             prisma.note.count({
                 where: { notebook: { userId }, isTrash: true },
             }),
         ]);
+
 
         // Smart Cleanup: Remove "My Notes" default notebook if user has created other notebooks
         // This handles the case where the user has moved on from the default state
@@ -222,6 +228,7 @@ export async function GET(request: NextRequest) {
             _count: { notes: number };
             createdAt: Date;
             updatedAt: Date;
+            stackId: string | null;
         }
 
         interface TagWithCount {
@@ -230,6 +237,14 @@ export async function GET(request: NextRequest) {
             color: string | null;
             _count: { notes: number };
             createdAt: Date;
+        }
+
+        interface Stack {
+            id: string;
+            name: string;
+            userId: string;
+            createdAt: Date;
+            updatedAt: Date;
         }
 
         interface NoteWithRelations {
@@ -256,6 +271,7 @@ export async function GET(request: NextRequest) {
             noteCount: notebook._count.notes,
             createdAt: notebook.createdAt,
             updatedAt: notebook.updatedAt,
+            stackId: notebook.stackId,
         }));
 
         const transformedTags = (tags as TagWithCount[]).map((tag) => ({
@@ -284,6 +300,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             notebooks: transformedNotebooks,
+            stacks: stacks as Stack[],
             tags: transformedTags,
             notes: transformedNotes,
             trashCount,

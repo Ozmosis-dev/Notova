@@ -8,7 +8,7 @@ import { TrashView } from '@/components/trash/TrashView';
 import { NoteEditor } from '@/components/notes/NoteEditor';
 import { ImportModal } from '@/components/import/ImportModal';
 import { AISummaryPanel } from '@/components/ai/AISummaryPanel';
-import { useAppData, useAppDataMutations } from '@/hooks/useAppData';
+import { useAppData, useAppDataMutations, type AppData } from '@/hooks/useAppData';
 import { useNoteSWR, useCreateNoteSWR } from '@/hooks/useNoteSWR';
 import { useNotebookActions } from '@/hooks/useNotebooks';
 import { useTagActions, useTags } from '@/hooks/useTags';
@@ -35,11 +35,13 @@ export default function Home() {
   const [mobileShowEditor, setMobileShowEditor] = useState(false);
   const [showNotebooksView, setShowNotebooksView] = useState(false);
   const [selectedNotebookInGrid, setSelectedNotebookInGrid] = useState<string | null>(null); // For notebooks view split mode
+  const [selectedStackId, setSelectedStackId] = useState<string | null>(null); // For stacks view
   const [trashCount, setTrashCount] = useState(0);
+  const [newNotebookStackId, setNewNotebookStackId] = useState<string | null>(null);
 
   // Optimized hooks with SWR caching
   // When showing notebooks view, fetch all notes (not filtered by notebook) for previews
-  const { notebooks, tags, notes, trashCount: appTrashCount, loading: appDataLoading, refetch: refetchAppData } = useAppData({
+  const { notebooks, stacks, tags, notes, trashCount: appTrashCount, loading: appDataLoading, refetch: refetchAppData } = useAppData({
     notebookId: showNotebooksView ? null : selectedNotebookId,
     tagId: selectedTagId,
     isTrash: showTrash,
@@ -52,7 +54,25 @@ export default function Home() {
     }
   }, [appTrashCount]);
 
-  const { refetchAll, optimisticUpdateNote, optimisticAddNote, optimisticAddNotebook, optimisticUpdateNotebook } = useAppDataMutations();
+  // Create a stable object for fallback data to prevent unnecessary re-renders in useAppDataMutations
+  const currentAppData: AppData = useMemo(() => ({
+    notebooks,
+    stacks,
+    tags,
+    notes,
+    trashCount: appTrashCount
+  }), [notebooks, stacks, tags, notes, appTrashCount]);
+
+  const {
+    refetchAll,
+    optimisticUpdateNote,
+    optimisticAddNote,
+    optimisticAddNotebook,
+    optimisticUpdateNotebook,
+    optimisticAddStack,
+    optimisticUpdateStack,
+    optimisticDeleteStack
+  } = useAppDataMutations(currentAppData);
   const { createNotebook, deleteNotebook, loading: creatingNotebook } = useNotebookActions();
   const { deleteTag } = useTagActions();
   const { tags: allAvailableTags, refetch: refetchTags } = useTags();
@@ -130,6 +150,7 @@ export default function Home() {
       noteCount: nb.noteCount,
       isDefault: nb.isDefault,
       isPinned: nb.isPinned,
+      stackId: nb.stackId,
     })),
     [notebooks]
   );
@@ -154,6 +175,27 @@ export default function Home() {
     setShowNotebooksView(false); // Switch to notes view when selecting from sidebar
     setSelectedNotebookInGrid(null); // Clear grid selection to prevent blank screen
   }, []);
+
+  const handleStackSelect = useCallback((stackId: string | null) => {
+    // If clicking the already selected stack, deselect it (toggle behavior)
+    if (selectedStackId === stackId && stackId !== null) {
+      setSelectedStackId(null);
+      // Don't change view mode, just clear filter? Or switch to all notebooks?
+      // Let's stick to "All Notebooks" view but without filter
+      return;
+    }
+
+    setSelectedStackId(stackId);
+    if (stackId) {
+      setShowNotebooksView(true);
+      setSelectedNotebookId(null);
+      setSelectedTagId(null);
+      setSelectedNoteId(null);
+      setShowTrash(false);
+      setShowTrashView(false);
+      setSelectedNotebookInGrid(null);
+    }
+  }, [selectedStackId]);
 
   const handleTagSelect = useCallback((id: string | null) => {
     setSelectedTagId(id);
@@ -323,12 +365,14 @@ export default function Home() {
 
     // Close modal and clear input immediately for responsiveness
     const notebookName = newNotebookName.trim();
+    const stackId = newNotebookStackId || selectedStackId; // Use selected stack if no specific stack id passed (though modal should handle this)
     setNewNotebookName('');
+    setNewNotebookStackId(null);
     setShowNewNotebookModal(false);
     setSelectedNotebookId(tempNotebookId); // Optimistically select temp notebook
 
-    const notebook = await optimisticAddNotebook(tempNotebook, async () => {
-      return await createNotebook({ name: notebookName });
+    const notebook = await optimisticAddNotebook({ ...tempNotebook, stackId }, async () => {
+      return await createNotebook({ name: notebookName, stackId: stackId || undefined });
     });
 
     // Update selection to the real notebook ID
@@ -529,16 +573,85 @@ export default function Home() {
     }
   }, [deleteNotebook, selectedNotebookId, refetchAppData]);
 
-  // Handle notebooks view toggle from sidebar
-  const handleNotebooksViewToggle = useCallback(() => {
-    setShowNotebooksView((prev) => !prev);
-    setShowTrashView(false);
-    setShowTrash(false);
-    // When switching to notebooks view, clear note selection and notebook grid selection
-    if (!showNotebooksView) {
+  // Stack Handlers
+  const handleStackCreate = useCallback(async (name: string) => {
+    try {
+      const tempStackId = `temp-stack-${Date.now()}`;
+      // Optimistic stack object
+      const tempStack = {
+        id: tempStackId,
+        name: name,
+        userId: 'current-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await optimisticAddStack(tempStack, async () => {
+        const res = await fetch('/api/stacks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) throw new Error('Failed to create stack');
+        return res.json();
+      });
+    } catch (error) {
+      console.error('Failed to create stack:', error);
+    }
+  }, [optimisticAddStack]);
+
+  const handleStackUpdate = useCallback(async (id: string, updates: { name?: string; icon?: string | null }) => {
+    try {
+      await optimisticUpdateStack(id, updates, async () => {
+        await fetch(`/api/stacks/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+      });
+    } catch (error) {
+      console.error('Failed to update stack:', error);
+    }
+  }, [optimisticUpdateStack]);
+
+  const handleStackDelete = useCallback(async (id: string) => {
+    try {
+      await optimisticDeleteStack(id, async () => {
+        await fetch(`/api/stacks/${id}`, {
+          method: 'DELETE',
+        });
+      });
+    } catch (error) {
+      console.error('Failed to delete stack:', error);
+    }
+  }, [optimisticDeleteStack]);
+
+  const handleNotebookMove = useCallback(async (notebookId: string, stackId: string | null) => {
+    try {
+      await optimisticUpdateNotebook(notebookId, { stackId }, async () => {
+        await fetch(`/api/notebooks/${notebookId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stackId }),
+        });
+
+        // If the moved notebook was selected, we might want to ensure sidebar state is correct
+        // but sidebar handles selection status independently of stack.
+      });
+    } catch (error) {
+      console.error('Failed to move notebook:', error);
+    }
+  }, [optimisticUpdateNotebook]);
+
+
+  // When switching to notebooks view, clear note selection and notebook grid selection
+  useEffect(() => {
+    if (showNotebooksView) {
       setSelectedNoteId(null);
       setSelectedNotebookInGrid(null);
       setMobileShowEditor(false);
+      // If we are switching TO notebooks view, we might want to keep the selected stack?
+      // Or should we clear it? Let's keep it if it's set, but maybe "All Notebooks" button in sidebar should clear it.
     }
   }, [showNotebooksView]);
 
@@ -550,7 +663,18 @@ export default function Home() {
     setShowTrash(false);
     setShowTrashView(false);
     setShowNotebooksView(false); // Always switch to notes view
+    setSelectedStackId(null); // Clear stack selection
     setSelectedNotebookInGrid(null); // Clear grid selection to prevent blank screen
+    setMobileShowEditor(false);
+  }, []);
+
+  // Handle changes to notebooks view toggle (specifically for "All Notebooks" in sidebar)
+  const handleAllNotebooksClick = useCallback(() => {
+    setShowNotebooksView(true);
+    setShowTrashView(false);
+    setShowTrash(false);
+    setSelectedNotebookInGrid(null);
+    setSelectedStackId(null); // Clear stack selection to show ALL notebooks
     setMobileShowEditor(false);
   }, []);
 
@@ -633,13 +757,23 @@ export default function Home() {
         selectedTagId={selectedTagId}
         onNotebookSelect={handleNotebookSelect}
         onTagSelect={handleTagSelect}
-        onNewNotebook={() => setShowNewNotebookModal(true)}
+        onNewNotebook={(stackId) => {
+          setNewNotebookStackId(stackId || null);
+          setShowNewNotebookModal(true);
+        }}
         onNotebookIconChange={handleNotebookIconChange}
         onNotebookPinToggle={handleNotebookPinToggle}
-        onNotebooksViewToggle={handleNotebooksViewToggle}
         onAllNotesClick={handleAllNotesClick}
         onImportClick={() => setShowImportModal(true)}
         onSearch={handleSearch}
+        stacks={stacks}
+        onStackCreate={handleStackCreate}
+        onStackUpdate={handleStackUpdate}
+        onStackDelete={handleStackDelete}
+        onNotebookMove={handleNotebookMove}
+        selectedStackId={selectedStackId}
+        onStackSelect={handleStackSelect}
+        onNotebooksViewToggle={handleAllNotebooksClick}
         onTagDelete={async (tagId) => {
           const success = await deleteTag(tagId);
           if (success) {
@@ -683,7 +817,10 @@ export default function Home() {
               <div className={`${mobileShowEditor ? 'hidden' : 'flex'} md:flex w-full md:w-auto ${(!selectedNoteId && !showNotebooksView) || (showNotebooksView && !selectedNotebookInGrid) ? 'flex-1' : ''}`}>
                 {showNotebooksView ? (
                   <NotebooksList
-                    notebooks={notebooksWithCount}
+                    notebooks={selectedStackId
+                      ? notebooksWithCount.filter(nb => nb.stackId === selectedStackId)
+                      : notebooksWithCount
+                    }
                     notes={mappedNotes}
                     selectedNotebookId={selectedNotebookInGrid}
                     onNotebookSelect={handleNotebookSelectFromGrid}
@@ -692,7 +829,15 @@ export default function Home() {
                     onSummarizeNotebook={handleSummarizeNotebook}
                     isSummarizing={aiSummary.isLoading && aiSummary.summaryType === 'notebook'}
                     summarizingNotebookId={summarizingNotebookId}
-                    onNewNotebook={() => setShowNewNotebookModal(true)}
+                    title={selectedStackId
+                      ? stacks.find(s => s.id === selectedStackId)?.name
+                      : 'Notebooks'
+                    }
+                    onBack={selectedStackId ? () => setSelectedStackId(null) : undefined}
+                    onNewNotebook={(stackId) => {
+                      setNewNotebookStackId(stackId || selectedStackId || null); // Pass current stack if creating from within a stack view
+                      setShowNewNotebookModal(true);
+                    }}
                     loading={appDataLoading}
                     fullPanel={!selectedNotebookInGrid}
                   />
@@ -832,7 +977,10 @@ export default function Home() {
         {/* New Notebook Modal */}
         <Modal
           isOpen={showNewNotebookModal}
-          onClose={() => setShowNewNotebookModal(false)}
+          onClose={() => {
+            setShowNewNotebookModal(false);
+            setNewNotebookStackId(null);
+          }}
           title="New Notebook"
           size="sm"
         >
@@ -847,7 +995,10 @@ export default function Home() {
             <div className="flex justify-end gap-3">
               <Button
                 variant="secondary"
-                onClick={() => setShowNewNotebookModal(false)}
+                onClick={() => {
+                  setShowNewNotebookModal(false);
+                  setNewNotebookStackId(null);
+                }}
               >
                 Cancel
               </Button>
