@@ -2,7 +2,7 @@
 import { parseEnexBuffer } from './enex-parser';
 import type { EnexExport, EnexNote, EnexResource } from '@/types/enex';
 import * as mammoth from 'mammoth';
-import pdf from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 export interface FileParseOptions {
     filename: string;
@@ -25,7 +25,8 @@ export async function parseFile(options: FileParseOptions): Promise<EnexExport> 
 
     try {
         if (filename.toLowerCase().endsWith('.pdf') || mimeType === 'application/pdf') {
-            const data = await pdf(buffer);
+            const parser = new PDFParse({ data: buffer });
+            const data = await parser.getText();
             // Simple text extraction for PDF. 
             // Newlines to <br> for basic formatting
             const textContent = data.text || '';
