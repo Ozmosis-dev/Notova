@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { UserThemeProvider } from "@/components/providers/UserThemeProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 const lufga = localFont({
   src: [
@@ -153,6 +154,7 @@ export default function RootLayout({
             </UserThemeProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
