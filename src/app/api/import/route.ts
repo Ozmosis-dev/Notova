@@ -9,13 +9,7 @@ import { importParsedData, listImportJobs } from '@/lib/import';
 import { parseFile } from '@/lib/import/file-parser';
 import { ensureDbUser } from '@/lib/supabase/server';
 
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '100mb',
-        },
-    },
-};
+
 
 /**
  * POST /api/import
