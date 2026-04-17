@@ -2,7 +2,6 @@
 import { parseEnexBuffer } from './enex-parser';
 import type { EnexExport, EnexNote, EnexResource } from '@/types/enex';
 import * as mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
 
 export interface FileParseOptions {
     filename: string;
@@ -25,10 +24,9 @@ export async function parseFile(options: FileParseOptions): Promise<EnexExport> 
 
     try {
         if (filename.toLowerCase().endsWith('.pdf') || mimeType === 'application/pdf') {
-            const parser = new PDFParse({ data: buffer });
-            const data = await parser.getText();
-            // Simple text extraction for PDF. 
-            // Newlines to <br> for basic formatting
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pdfParse = await import('pdf-parse') as any;
+            const data = await pdfParse(buffer, {});
             const textContent = data.text || '';
             content = `<div>${textContent.replace(/\n/g, '<br/>')}</div>`;
         } else if (filename.toLowerCase().endsWith('.docx') || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {

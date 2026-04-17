@@ -59,6 +59,8 @@ const nextConfig: NextConfig = {
   /**
    * Experimental features for better performance
    */
+  serverExternalPackages: ['pdf-parse'],
+
   experimental: {
     // Enable optimized image loading
     optimizePackageImports: ['@tiptap/react', '@tiptap/extension-*', 'lucide-react', 'framer-motion'],
